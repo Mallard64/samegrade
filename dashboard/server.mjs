@@ -192,13 +192,37 @@ const LIVE_MAX_USD = Math.min(Number(process.env.LIVE_MAX_USD) || 2, 5);
 const LIVE_SETS = ['dev', 'hard', 'holdout2', 'fresh3', 'all'];
 let liveRun = null;   // {option, label, state, total, ids, runs, rows, spent_usd, error, started, child}
 const publicLive = () => liveRun && Object.fromEntries(Object.entries(liveRun).filter(([k]) => k !== 'child'));
-function startLive({option, sets, cases, runs}) {
+// Keys come from this server's environment, or from the repo's .env (only the names below; never logged or sent to the page).
+async function liveEnv() {
+  const env = {...process.env};
+  try {
+    for (const line of (await readFile(path.join(BACKEND, '.env'), 'utf8')).split('\n')) {
+      const m = line.match(/^\s*(?:export\s+)?(OPENAI_API_KEY|OLLAMA_BASE)\s*=\s*['"]?([^'"#\s]+)/);
+      if (m && !env[m[1]]) env[m[1]] = m[2];
+    }
+  } catch { /* no .env */ }
+  return env;
+}
+// Problems the reviewer can fix are reported before anything starts, in the dialog that asked.
+async function liveProblem(option, env) {
+  if (!env.OPENAI_API_KEY) return 'No OpenAI key found. Put OPENAI_API_KEY in the .env file next to the dashboard folder, or start the server with it set, then try again.';
+  if (option === 'cheap') {
+    const base = env.OLLAMA_BASE || 'http://localhost:11434';
+    try { const r = await fetch(`${base}/api/tags`, {signal: AbortSignal.timeout(3000)}); if (!r.ok) throw new Error(); }
+    catch { return `The cheap mix runs its tone step on a local model, but Ollama isn't answering at ${base}. Start Ollama (ollama serve), or choose the gpt-5.6-sol option.`; }
+  }
+  return null;
+}
+async function startLive({option, sets, cases, runs}) {
   if (liveRun?.state === 'running') return {error: 'a live run is already in progress'};
+  const env = await liveEnv();
+  const problem = await liveProblem(option, env);
+  if (problem) return {error: problem};
   const args = [path.join(BACKEND, 'live_run.py'), '--option', option, '--runs', String(runs), '--max-usd', String(LIVE_MAX_USD)];
   if (cases.length) args.push('--cases', cases.join(','));
   else args.push('--sets', sets);
   const venv = path.join(BACKEND, '.venv', 'bin', 'python');
-  const child = spawn(existsSync(venv) ? venv : 'python3', args, {cwd: BACKEND});
+  const child = spawn(existsSync(venv) ? venv : 'python3', args, {cwd: BACKEND, env});
   liveRun = {option, state: 'running', total: 0, ids: [], runs, rows: [], spent_usd: 0, error: null, started: Date.now(), child};
   const run = liveRun;
   let buf = '';
@@ -298,7 +322,7 @@ http.createServer(async (req, res) => {
     const cases = Array.isArray(body?.cases) ? body.cases.slice(0, 60).map(String).filter(x => /^t\d{1,3}$/.test(x)) : [];
     const sets = LIVE_SETS.includes(body?.sets) ? body.sets : '';
     if (!cases.length && !sets) return sendJSON(res, 400, {error: 'choose a set of test cases'});
-    const out = startLive({option: body?.option === 'sol' ? 'sol' : 'cheap', sets, cases, runs: [1, 3].includes(body?.runs) ? body.runs : 1});
+    const out = await startLive({option: body?.option === 'sol' ? 'sol' : 'cheap', sets, cases, runs: [1, 3].includes(body?.runs) ? body.runs : 1});
     return sendJSON(res, out.error ? 409 : 200, out);
   }
   if (url.pathname === '/api/live') {

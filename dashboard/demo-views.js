@@ -150,6 +150,7 @@ function openLiveConfirm(data, only) {
   dialog.querySelectorAll('select').forEach(x => x.onchange = est);
   est();
   dialog.querySelector('.close').onclick = dialog.querySelector('#lv-cancel').onclick = () => dialog.close();
+  dialog.showModal();
   dialog.querySelector('#lv-go').onclick = async () => {
     const body = {option: demoState.choice, runs: Number(dialog.querySelector('#lv-runs').value),
       ...(only ? {cases: [only]} : {sets: dialog.querySelector('#lv-scope').value})};
@@ -198,10 +199,10 @@ function liveScreen(data) {
     <div class="lv-top"><button class="button" data-live-back>← Back to the report</button><span class="dm-pill ${st[1]}" aria-live="polite">${st[0]}</span></div>
     <article class="sl-slide">
       <p class="sl-kicker">Live run · real model calls · ${esc(L.option === 'sol' ? 'gpt-5.6-sol + tone fix' : 'cheapest mix')}</p>
-      <h2 class="sl-title" tabindex="-1">${done} of ${total || '…'} test case runs done</h2>
+      <h2 class="sl-title" tabindex="-1">${L.state === 'error' && !total ? "The live run didn't start" : `${done} of ${total || '…'} test case runs done`}</h2>
       <div class="lv-bar" role="progressbar" aria-valuemin="0" aria-valuemax="${total}" aria-valuenow="${done}"><i style="width:${total ? done / total * 100 : 0}%"></i></div>
       <p class="dm-foot">Spent <strong>${usd(L.spent_usd || 0, 4)}</strong> of the ${usd(L.max_usd || demoState.liveCap)} cap · ${elapsed}s since start · ${worse} worse than gpt-4 on hard checks so far${L.models ? ` · ${STEPS.map(x => `${x}: ${esc(L.models[x])}`).join(' · ')}` : ''}</p>
-      ${L.error ? `<p class="dm-bad" role="alert">${esc(L.error)}</p>` : ''}
+      ${L.error ? `<p class="lv-error" role="alert"><strong>${L.state === 'error' ? 'Problem:' : 'Note:'}</strong> ${esc(L.error)}</p>` : ''}
       <div class="sl-case-grid">${tiles}</div>
       <p class="dm-foot"><span class="sl-case lv-pending sl-key"></span> waiting <span class="sl-case lv-part sl-key"></span> some runs in <span class="sl-case lv-ok sl-key"></span> passed every check <span class="sl-case lv-bad sl-key"></span> a check failed or errored · click a tile to compare</p>
       <div class="dm-actions">${L.state === 'running' ? '<button class="button dm-reject" data-live-stop>Stop</button>' : '<button class="button primary" data-live-again>Run again…</button>'}</div>
