@@ -36,7 +36,9 @@ TICKET_SETS = {"agent": TICKETS, "agent_hard": HERE / "inputs" / "agent_hard.jso
                # Oct 8: 12 fresh held-out tickets, committed before any model ran on them.
                "agent_holdout2": HERE / "inputs" / "agent_holdout2.jsonl",
                # Oct 8: 8 more fresh tickets for a cheap retest of the luna + llama mix, committed before any run.
-               "agent_fresh3": HERE / "inputs" / "agent_fresh3.jsonl"}
+               "agent_fresh3": HERE / "inputs" / "agent_fresh3.jsonl",
+               # Oct 10: 12 more fresh tickets for a clean test of the cheap mix, committed before any model ran on them.
+               "agent_fresh4": HERE / "inputs" / "agent_fresh4.jsonl"}
 OPENAI_BASE = "https://api.openai.com/v1"
 PROTECTED = {"agent__gpt-4.jsonl", "agent__gpt-4__hard.jsonl"}
 TODAY = "2026-10-06"  # fixed so the tools and prompts are deterministic

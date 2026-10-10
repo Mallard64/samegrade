@@ -27,7 +27,7 @@ import support_agent as A  # noqa: E402
 from assign import new_prompts  # noqa: E402
 from stepfinder import plan_of, spec  # noqa: E402
 
-SETS = {"dev": "agent", "hard": "agent_hard", "holdout2": "agent_holdout2", "fresh3": "agent_fresh3"}
+SETS = {"dev": "agent", "hard": "agent_hard", "holdout2": "agent_holdout2", "fresh3": "agent_fresh3", "fresh4": "agent_fresh4"}
 FIX_LINE = 3  # classify: "Extract the order ID ..."
 FIXED = ("Extract the order ID if the ticket gives one: the letter A followed by 4 digits (e.g. A1234). Customers "
          "may type it in lowercase or with a #; return it in uppercase without the # (a1234 -> A1234). "
