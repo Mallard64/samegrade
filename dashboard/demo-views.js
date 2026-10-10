@@ -101,7 +101,7 @@ function openCase(d, i) {
   const col = ([k, name]) => {
     const r = c[k];
     return `<section class="dm-case-col${k === (demoState.choice === 'sol' ? 'sol_fix' : 'cheap_fix') ? ' sel' : ''}"><h4>${esc(name)}</h4>${!r ? '<p class="dm-foot">Not run on this test case.</p>' :
-      `<p class="dm-foot"><span class="${r.passed === r.of ? 'dm-good' : 'dm-bad'}">${r.passed}/${r.of}</span> runs passed every check${r.failed?.length ? ` · failed: ${esc(r.failed.join(', '))}` : ''}</p><pre class="dm-case-out">${esc(r.output)}</pre>`}</section>`;
+      `<p class="dm-foot"><span class="${r.passed === r.of ? 'dm-good' : 'dm-bad'}">${r.passed}/${r.of}</span> runs passed every check${r.failed?.length ? ` · failed: ${esc(r.failed.join(', '))}` : ''}</p>${headNote(r.output, c.expected)}<pre class="dm-case-out">${esc(r.output)}</pre>`}</section>`;
   };
   dialog.innerHTML = `<div class="detail-head"><div><p class="eyebrow">${esc(c.id)} · ${esc(SPLIT[c.split] || c.split)}${c.tricky ? ' · tricky' : ''}</p><h2 id="detail-title">Old vs new model</h2></div><button class="close" aria-label="Close details">×</button></div>
     <div class="detail-body"><h3 class="sl-label">Input</h3><p class="dm-case-in">${esc(c.text)}</p>
@@ -116,6 +116,19 @@ function openCase(d, i) {
 // ---- Live runs: call the real models on chosen test cases, on a screen of their own -------------------------
 const LIVE_SCOPES = [['fresh3', 'Newest (8)'], ['dev', 'Practice (24)'], ['holdout2', 'Holdout (12)'], ['hard', 'Hard (12)'], ['all', 'All 56']];
 const SCOPE_N = {fresh3: 8, dev: 24, holdout2: 12, hard: 12, all: 56};
+// "[category / action]" is the first line of every recorded and live output; compare it with the expected answer.
+function headMatch(output, expected) {
+  const m = /^\[([^\]/]*?)\s*\/\s*([^\]]*?)\]/.exec(output || '');
+  if (!m || !expected) return null;
+  const bad = [];
+  if (expected.category && m[1] !== expected.category) bad.push(`category ${m[1]}, expected ${expected.category}`);
+  if (expected.action && m[2] !== expected.action) bad.push(`decision ${m[2]}, expected ${expected.action}`);
+  return bad;
+}
+const headNote = (output, expected) => {
+  const bad = headMatch(output, expected);
+  return bad === null ? '' : bad.length ? `<p class="dm-foot dm-bad">Differs from expected: ${esc(bad.join('; '))}</p>` : '<p class="dm-foot dm-good">Category and decision match the expected answer</p>';
+};
 const liveRows = id => (demoState.live?.rows || []).filter(r => r.id === id);
 
 function liveButtons(d) {
@@ -179,15 +192,18 @@ function liveScreen(data) {
   const verdict = (r, c) => {
     if (r.error) return ['error', 'Error: ' + r.error.slice(0, 120)];
     const oldOK = c?.old && c.old.passed === c.old.of;
-    return r.passed ? [oldOK ? 'ok' : 'better', oldOK ? 'Passes, like gpt-4' : 'Passes (gpt-4 failed a check)'] : [oldOK ? 'bad' : 'same', oldOK ? `Worse than gpt-4: failed ${r.failed.join(', ') || 'a check'}` : 'Fails, like gpt-4'];
+    const off = headMatch(r.output, c?.expected);
+    if (r.passed && off?.length) return ['same', 'Passes the checks; decision differs from expected'];
+    return r.passed ? [oldOK ? 'ok' : 'better', oldOK ? 'Passes the checks, like gpt-4' : 'Passes the checks (gpt-4 failed one)'] : [oldOK ? 'bad' : 'same', oldOK ? `Worse than gpt-4: failed ${r.failed.join(', ') || 'a check'}` : 'Fails, like gpt-4'];
   };
   const feed = [...L.rows].reverse().slice(0, 40).map(r => {
     const c = byId.get(r.id), [cls, msg] = verdict(r, c);
     return `<article class="lv-row"><div class="lv-row-head"><strong class="dm-mono">${esc(r.id)}</strong><span class="lv-chip ${cls}">${esc(msg)}</span>
       <span class="dm-foot">run ${r.run} · ${r.latency_s}s · ${r.cost_usd ? '$' + r.cost_usd.toFixed(4) : 'no priced calls'}</span></div>
       <p class="dm-case-in">${esc(r.text)}</p>
-      <div class="dm-case-cols"><section class="dm-case-col"><h4>gpt-4 (recorded)</h4>${c?.old ? `<p class="dm-foot">${c.old.passed}/${c.old.of} runs passed every check</p><pre class="dm-case-out">${esc(c.old.output)}</pre>` : '<p class="dm-foot">no recorded run</p>'}</section>
-      <section class="dm-case-col sel"><h4>Live · ${esc(L.label || '')}</h4><pre class="dm-case-out">${esc(r.output ?? r.error ?? '')}</pre></section></div></article>`;
+      ${c?.expected ? `<p class="dm-foot">Expected: ${esc(Object.entries(c.expected).map(([k, v]) => `${k} ${v ?? 'none'}`).join(' · '))}${c.note ? ` · ${esc(c.note)}` : ''}</p>` : ''}
+      <div class="dm-case-cols"><section class="dm-case-col"><h4>gpt-4 (recorded)</h4>${c?.old ? `<p class="dm-foot">${c.old.passed}/${c.old.of} runs passed every check</p>${headNote(c.old.output, c.expected)}<pre class="dm-case-out">${esc(c.old.output)}</pre>` : '<p class="dm-foot">no recorded run</p>'}</section>
+      <section class="dm-case-col sel"><h4>Live · ${esc(L.label || '')}</h4>${r.output ? headNote(r.output, c?.expected) : ''}<pre class="dm-case-out">${esc(r.output ?? r.error ?? '')}</pre></section></div></article>`;
   }).join('');
   const elapsed = Math.max(0, Math.round((Date.now() - (L.started || Date.now())) / 1000));
   const worse = L.rows.filter(r => r.passed === false && byId.get(r.id)?.old && byId.get(r.id).old.passed === byId.get(r.id).old.of).length;
