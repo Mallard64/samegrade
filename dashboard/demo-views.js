@@ -60,7 +60,7 @@ function slideResults(data) {
     </div>
   </div>
   <div class="sl-calc">
-    <label for="dm-volume">Test cases per month</label>
+    <label for="dm-volume">Uses per month</label>
     <input id="dm-volume" class="dm-input" type="number" min="0" step="1000" inputmode="numeric" value="${vol}">
     <p aria-live="polite">Today <strong id="dm-today">${usd(vol * old / 1000, 0)}</strong> → after <strong id="dm-after">${usd(vol * rec.usd_per_1k / 1000, 0)}</strong>.
       You save <strong class="dm-good" id="dm-save">${usd(vol * (old - rec.usd_per_1k) / 1000, 0)}</strong> a month.</p>
