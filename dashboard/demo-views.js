@@ -25,12 +25,20 @@ function slideFromHash() {
   return i < 0 ? 0 : i;
 }
 
-export const demoState = {slide: slideFromHash(), volume: null, decisions: {}, editing: null, edits: {}};
+export const demoState = {slide: slideFromHash(), volume: null, decisions: {}, editing: null, edits: {}, choice: 'cheap'};
+
+// The reviewer picks one option: the cheapest model per step ('cheap') or gpt-5.6-sol everywhere ('sol').
+const chosenRec = d => demoState.choice === 'sol' ? d.fallback : d.recommended;
+const chooser = d => `<div class="sl-choose" role="group" aria-label="Option to ship">
+  <span class="sl-label">Option</span>
+  <button class="sl-choice" data-choice="cheap" aria-pressed="${demoState.choice === 'cheap'}">Cheapest mix <small>${usd(d.recommended.usd_per_1k)} per 1,000</small></button>
+  <button class="sl-choice" data-choice="sol" aria-pressed="${demoState.choice === 'sol'}">gpt-5.6-sol + tone fix <small>${usd(d.fallback.usd_per_1k)} per 1,000</small></button>
+</div>`;
 
 // ---- Slide 1: the result ---------------------------------------------------------------------------
 function slideResults(data) {
-  const d = data.demo, old = d.totals_usd_per_1k.all_old, rec = d.recommended, q = d.quality, c = d.confidence;
-  const r = d.pool?.retest, cheap = rec.config === 'cheap_mix' && r;
+  const d = data.demo, old = d.totals_usd_per_1k.all_old, rec = chosenRec(d), q = d.quality, c = d.confidence;
+  const r = d.pool?.retest, cheap = demoState.choice === 'cheap' && rec.config === 'cheap_mix' && r;
   // The cheap mix is judged on every test case it ran: practice, hard (seen once) and fresh.
   const sets = cheap ? [r.dev, r.holdout2_seen, r.fresh3.mix] : [];
   const cases = sets.reduce((n, x) => n + x.of, 0);
@@ -40,8 +48,9 @@ function slideResults(data) {
   const vol = demoState.volume ?? d.monthly_requests_default;
   const price = Object.values(d.prices)[0] || {};
   return `
-  <p class="sl-kicker">${esc(d.pair.old)} → cheaper models · 4-step support agent · gpt-4 shuts down Oct 23</p>
-  <h2 class="sl-title" tabindex="-1">${cheap ? 'Move every step to a cheaper model, with a one-line prompt fix' : `Switch to <span class="dm-mono">${esc(rec.assignment.classify)}</span> with a one-line prompt fix`}</h2>
+  <p class="sl-kicker">${esc(d.pair.old)} → ${cheap ? 'cheaper models' : esc(d.pair.new)} · 4-step support agent · gpt-4 shuts down Oct 23</p>
+  ${chooser(d)}
+  <h2 class="sl-title" tabindex="-1">${cheap ? 'Move every step to a cheaper model, with a one-line prompt fix' : `Switch to <span class="dm-mono">${esc(rec.assignment.classify)}</span> on every step with a one-line prompt fix`}</h2>
   <div class="sl-kpis">
     <div class="sl-kpi">
       <span class="sl-label">Test cases that got worse</span>
@@ -65,8 +74,41 @@ function slideResults(data) {
     <p aria-live="polite">Today <strong id="dm-today">${usd(vol * old / 1000, 0)}</strong> → after <strong id="dm-after">${usd(vol * rec.usd_per_1k / 1000, 0)}</strong>.
       You save <strong class="dm-good" id="dm-save">${usd(vol * (old - rec.usd_per_1k) / 1000, 0)}</strong> a month.</p>
   </div>
+  ${caseGrid(d)}
   <p class="sl-foot">Real model runs on hand-written test cases, ${c.runs_per_ticket} runs each. Same prompts, tools and test cases on both sides; only the models changed.
     Cost = measured tokens × list prices (${esc(price.source)}, checked ${esc(price.checked)}); model cost only. The volume is your number.</p>`;
+}
+
+// ---- Every test case: input, expected answer, and what each model said ---------------------------------------
+const CASE_COLS = [['old', 'gpt-4 (today)'], ['sol', 'gpt-5.6-sol, as is'], ['sol_fix', 'gpt-5.6-sol + tone fix'], ['cheap_fix', 'Cheapest mix + classify fix']];
+
+function caseGrid(d) {
+  if (!d.cases?.length) return '';
+  const key = demoState.choice === 'sol' ? 'sol_fix' : 'cheap_fix';
+  const tiles = d.cases.map((c, i) => {
+    const r = c[key], state = !r ? 'na' : r.passed === r.of ? 'ok' : 'bad';
+    return `<button class="sl-case ${state}" data-case="${i}" title="${esc(c.id)} · ${!r ? 'not run for this option' : `${r.passed}/${r.of} runs passed every check`}" aria-label="Test case ${esc(c.id)}, ${state === 'ok' ? 'passed' : state === 'bad' ? 'failed' : 'not run'}">${esc(c.id.replace(/^t/, ''))}</button>`;
+  }).join('');
+  return `<div class="sl-cases"><p class="sl-label">Every test case, for ${demoState.choice === 'sol' ? 'gpt-5.6-sol + tone fix' : 'the cheapest mix'} · click one to compare old and new</p>
+    <div class="sl-case-grid">${tiles}</div>
+    <p class="dm-foot"><span class="sl-case ok sl-key"></span> passed every check in all runs <span class="sl-case bad sl-key"></span> failed a check <span class="sl-case na sl-key"></span> not run for this option</p></div>`;
+}
+
+function openCase(d, i) {
+  const c = d.cases[i], dialog = document.querySelector('#detail');
+  if (!c || !dialog) return;
+  const exp = c.expected ? Object.entries(c.expected).map(([k, v]) => `${k}: ${v ?? 'none'}`).join(' · ') : '';
+  const col = ([k, name]) => {
+    const r = c[k];
+    return `<section class="dm-case-col${k === (demoState.choice === 'sol' ? 'sol_fix' : 'cheap_fix') ? ' sel' : ''}"><h4>${esc(name)}</h4>${!r ? '<p class="dm-foot">Not run on this test case.</p>' :
+      `<p class="dm-foot"><span class="${r.passed === r.of ? 'dm-good' : 'dm-bad'}">${r.passed}/${r.of}</span> runs passed every check${r.failed?.length ? ` · failed: ${esc(r.failed.join(', '))}` : ''}</p><pre class="dm-case-out">${esc(r.output)}</pre>`}</section>`;
+  };
+  dialog.innerHTML = `<div class="detail-head"><div><p class="eyebrow">${esc(c.id)} · ${esc(c.split)}${c.tricky ? ' · tricky' : ''}</p><h2 id="detail-title">Old vs new model</h2></div><button class="close" aria-label="Close details">×</button></div>
+    <div class="detail-body"><h3 class="sl-label">Input</h3><p class="dm-case-in">${esc(c.text)}</p>
+    ${exp ? `<p class="dm-foot">Expected: ${esc(exp)}${c.note ? ` · ${esc(c.note)}` : ''}</p>` : ''}
+    <div class="dm-case-cols">${CASE_COLS.map(col).join('')}</div></div>`;
+  dialog.querySelector('.close').onclick = () => dialog.close();
+  dialog.showModal();
 }
 
 // ---- Slide 2: every model ----------------------------------------------------------------------------
@@ -112,7 +154,7 @@ function slideChoice(data) {
     p?.sol_patch_holdout2 && `${p.sol_patch_holdout2.regressed} of ${p.sol_patch_holdout2.of}`,
     r && `${r.fresh3.sol_patch.regressed} of ${r.fresh3.sol_patch.of}`].filter(Boolean).join(', ');
   const main = !r ? '' : `
-    <section class="sl-option sl-option-rec" aria-labelledby="sl-a">
+    <section class="sl-option${demoState.choice === 'cheap' ? ' sl-option-rec' : ''}" aria-labelledby="sl-a">
       <span class="dm-pill accepted">Recommended · cheapest</span>
       <h3 id="sl-a">${STEPS.map(s => `${s} → <span class="dm-mono">${esc(rec.assignment[s])}</span>`).join(', ')}</h3>
       <p class="sl-price">${usd(rec.usd_per_1k)} <small>per 1,000 test cases in API calls, plus about ${Math.round(r.cost.self_hosted_tokens_per_ticket)} tokens per test case on your own computer</small></p>
@@ -121,9 +163,10 @@ function slideChoice(data) {
       ${diff(r.fix.old, r.fix.new)}
       <p><strong>After the fix:</strong> ${r.dev.regressed} of ${r.dev.of} practice test cases and ${r.fresh3.mix.regressed} of ${r.fresh3.mix.of} brand-new test cases got worse.
         Encouraging, but ${r.fresh3.mix.of} test cases is a small test, and the cost of running the model yourself isn't measured.</p>
+      <button class="button${demoState.choice === 'cheap' ? ' primary' : ''}" data-choice="cheap" aria-pressed="${demoState.choice === 'cheap'}">${demoState.choice === 'cheap' ? '✓ Selected' : 'Choose this option'}</button>
     </section>`;
   const safer = `
-    <section class="sl-option" aria-labelledby="sl-b">
+    <section class="sl-option${demoState.choice === 'sol' ? ' sl-option-rec' : ''}" aria-labelledby="sl-b">
       <span class="dm-pill warn">Safer, costlier fallback</span>
       <h3 id="sl-b"><span class="dm-mono">${esc(fb.assignment.classify)}</span> on every step + a tone fix</h3>
       <p class="sl-price">${usd(fb.usd_per_1k)} <small>per 1,000 test cases</small></p>
@@ -133,6 +176,7 @@ function slideChoice(data) {
       <p><strong>Fix, tone prompt</strong> (written by ${esc(patch.fixer)} from the practice test cases only):</p>
       ${patch.edits.map(e => diff(e.old, e.new)).join('')}
       <p><strong>Got worse after the fix:</strong> ${fbResults}, including test cases the fix never saw.</p>
+      <button class="button${demoState.choice === 'sol' ? ' primary' : ''}" data-choice="sol" aria-pressed="${demoState.choice === 'sol'}">${demoState.choice === 'sol' ? '✓ Selected' : 'Choose this option'}</button>
     </section>`;
   return `
   <p class="sl-kicker">Cheapest safe choice</p>
@@ -148,19 +192,19 @@ function slideChoice(data) {
 
 // ---- Slide 4: the pull request -------------------------------------------------------------------------
 function prChanges(data) {
-  const d = data.demo, rec = d.recommended;
+  const d = data.demo, rec = chosenRec(d);
   const temp = st => 'temperature' in (rec.params?.[st] || {}) ? 'temperature: 0' : 'default temperature';
+  const why = demoState.choice === 'sol' ? 'Keep the refund timeline in the tone check' : 'Keep lowercase order IDs working';
   return [
-    {id: 'model', where: 'All 4 steps', summary: 'A cheaper model on each step',
+    {id: 'model', where: 'All 4 steps', summary: demoState.choice === 'sol' ? `Model ${d.pair.old} → ${d.pair.new}` : 'A cheaper model on each step',
      old: STEPS.map(st => `${st}: ${d.pair.old}   temperature: 0`).join('\n'),
      new: STEPS.map(st => `${st}: ${rec.assignment[st]}   ${temp(st)}`).join('\n')},
-    ...rec.edits.map((e, i) => ({id: 'line' + i, where: `${e.step} prompt, line ${e.line_index + 1}`,
-      summary: 'Keep lowercase order IDs working', old: e.old, new: e.new})),
+    ...rec.edits.map((e, i) => ({id: 'line' + i, where: `${e.step} prompt, line ${e.line_index + 1}`, summary: why, old: e.old, new: e.new})),
   ];
 }
 
 function slidePR(data) {
-  const d = data.demo, rec = d.recommended, r = d.pool.retest, changes = prChanges(data);
+  const d = data.demo, rec = chosenRec(d), r = d.pool.retest, changes = prChanges(data), sol = demoState.choice === 'sol';
   const sets = [r.dev, r.holdout2_seen, r.fresh3.mix];
   const total = sets.reduce((n, x) => n + x.of, 0), worse = sets.reduce((n, x) => n + x.regressed, 0);
   const status = id => demoState.decisions[id] || 'pending';
@@ -193,13 +237,13 @@ function slidePR(data) {
   </div>`;
   return `
   <div class="dm-change-head"><div><p class="sl-kicker">Draft pull request · ${changes.length} changes</p>
-    <h2 class="sl-title" tabindex="-1">${esc(data.pr.title)}</h2></div>
+    <h2 class="sl-title" tabindex="-1">${esc(sol ? 'Move the support agent to ' + d.pair.new + '; keep the refund timeline in the tone check' : data.pr.title)}</h2>${chooser(d)}</div>
     <span class="dm-pill ${ready ? 'accepted' : 'pending'}" aria-live="polite">${ready ? 'Ready to merge' : 'Needs review'}</span></div>
   <ul class="dm-summary">
-    <li><strong>Where:</strong> all 4 steps, and the <span class="dm-mono">${esc(rec.edits[0].step)}</span> prompt.</li>
-    <li><strong>What:</strong> a cheaper model on each step and ${rec.edits.length} prompt line.</li>
-    <li><strong>Proof:</strong> test cases that got worse ${d.pool.mix.holdout2.regressed.length} on the first try → ${worse} of ${total} after the fix. ${r.fresh3.mix.of} fresh test cases is a small test.</li>
-    <li><strong>Cost:</strong> ${usd(d.totals_usd_per_1k.all_old)} → ${usd(rec.usd_per_1k)} per 1,000 test cases (API calls only; the ${esc(rec.self_hosted_steps.join(', '))} step runs locally).</li>
+    <li><strong>Where:</strong> ${sol ? `the <span class="dm-mono">${esc(rec.edits[0].step)}</span> step` : `all 4 steps, and the <span class="dm-mono">${esc(rec.edits[0].step)}</span> prompt`}.</li>
+    <li><strong>What:</strong> ${sol ? `the model swap to ${esc(d.pair.new)}` : 'a cheaper model on each step'} and ${rec.edits.length} prompt line.</li>
+    <li><strong>Proof:</strong> ${sol ? `test cases that got worse ${d.confidence.regressed_dev + d.confidence.regressed_heldout_before} → ${data.candidates[0].summary.verdict_counts_after_fix?.REGRESSED} of ${d.confidence.dev_tickets + d.confidence.heldout_tickets}, including ${d.patch.heldout_before.REGRESSED} → ${d.patch.heldout_after.REGRESSED} on held-out test cases the fix never saw.` : `test cases that got worse ${d.pool.mix.holdout2.regressed.length} on the first try → ${worse} of ${total} after the fix. ${r.fresh3.mix.of} fresh test cases is a small test.`}</li>
+    <li><strong>Cost:</strong> ${usd(d.totals_usd_per_1k.all_old)} → ${usd(rec.usd_per_1k)} per 1,000 test cases${sol ? '' : ` (API calls only; the ${esc(rec.self_hosted_steps.join(', '))} step runs locally)`}.</li>
   </ul>
   ${items}
   ${create}`;
@@ -248,9 +292,16 @@ export function bindDemo(root, data) {
       if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); go(demoState.slide - 1); }
     });
   }
+  panel.querySelectorAll('[data-choice]').forEach(b => b.onclick = () => {
+    if (b.dataset.choice === demoState.choice) return;
+    demoState.choice = b.dataset.choice;
+    Object.assign(demoState, {decisions: {}, edits: {}, editing: null, pr: null});  // a different option is a different pull request
+    redraw();
+  });
+  panel.querySelectorAll('[data-case]').forEach(b => b.onclick = () => openCase(data.demo, Number(b.dataset.case)));
   const vol = panel.querySelector('#dm-volume');
   if (vol) vol.oninput = () => {
-    const d = data.demo, v = Math.max(0, Number(vol.value) || 0), old = d.totals_usd_per_1k.all_old, rec = d.recommended.usd_per_1k;
+    const d = data.demo, v = Math.max(0, Number(vol.value) || 0), old = d.totals_usd_per_1k.all_old, rec = chosenRec(d).usd_per_1k;
     demoState.volume = v;
     panel.querySelector('#dm-today').textContent = usd(v * old / 1000, 0);
     panel.querySelector('#dm-after').textContent = usd(v * rec / 1000, 0);
@@ -263,7 +314,7 @@ export function bindDemo(root, data) {
     demoState.pr = {busy: true};
     redraw();
     try {
-      const r = await fetch('/api/create-pr', {method: 'POST', headers: {'content-type': 'application/json'}, body: JSON.stringify({changes})});
+      const r = await fetch('/api/create-pr', {method: 'POST', headers: {'content-type': 'application/json'}, body: JSON.stringify({changes, option: demoState.choice})});
       const out = await r.json().catch(() => ({error: `the server answered ${r.status}`}));
       demoState.pr = {...out, busy: false};
     } catch {

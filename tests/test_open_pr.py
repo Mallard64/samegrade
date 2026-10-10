@@ -47,6 +47,15 @@ class Plan(unittest.TestCase):
             O.plan([{"id": "model", "decision": "edited", "text": "use the cheaper one"}], DEMO)
 
 
+class SolOption(unittest.TestCase):
+    def test_sol_option_swaps_every_step_and_edits_the_tone_line(self):
+        applied, _ = O.plan([{"id": "model", "decision": "accepted"}, {"id": "line0", "decision": "accepted"}], DEMO, "sol")
+        self.assertEqual(set(applied[0]["apply"].values()), {"gpt-5.6-sol"})
+        self.assertEqual(applied[1]["step"], "tone")
+        text = O.body(DATA, TARGET, applied, [], "sol")
+        self.assertIn("refund timeline", text)
+
+
 class Apply(unittest.TestCase):
     def test_per_step_models_and_prompt_line(self):
         with tempfile.TemporaryDirectory() as t:

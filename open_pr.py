@@ -32,9 +32,13 @@ def sh(*cmd, cwd=None):
     return r.stdout.strip()
 
 
-def plan(changes, demo):
-    """Which changes to apply, with the text to apply. Returns (applied, skipped)."""
-    rec = demo["recommended"]
+OPTIONS = {"cheap": "recommended", "sol": "fallback"}
+
+
+def plan(changes, demo, option="cheap"):
+    """Which changes to apply, with the text to apply. Returns (applied, skipped).
+    option: "cheap" (the cheapest model per step) or "sol" (gpt-5.6-sol everywhere + the tone fix)."""
+    rec = demo[OPTIONS[option]]
     by_id = {c.get("id"): c for c in changes}
     defs = [{"id": "model", "kind": "model", "old": demo["pair"]["old"], "new": rec["assignment"], "params": rec["params"]}]
     defs += [{"id": f"line{i}", "kind": "line", "step": e["step"], "line_index": e["line_index"],
@@ -92,8 +96,10 @@ def apply(repo_dir, target, applied):
             path.write_text("\n".join(lines))
 
 
-def body(data, target, applied, skipped):
+def body(data, target, applied, skipped, option="cheap"):
     demo = data["demo"]
+    if option == "sol":
+        return body_sol(data, target, applied, skipped)
     rec, old = demo["recommended"], demo["pair"]["old"]
     r = demo["pool"]["retest"]
     total = r["dev"]["of"] + r["holdout2_seen"]["of"] + r["fresh3"]["mix"]["of"]
@@ -133,16 +139,57 @@ Opened by upshift from the reviewer's decisions on the dashboard.
 """
 
 
+def body_sol(data, target, applied, skipped):
+    demo = data["demo"]
+    c, p, t, old = demo["confidence"], demo["patch"], demo["totals_usd_per_1k"], demo["pair"]["old"]
+    after = data["candidates"][0]["summary"]["verdict_counts_after_fix"]["REGRESSED"]
+    rows = []
+    for ch in applied:
+        if ch["kind"] == "model":
+            moves = ", ".join(f"`{s}` → `{m}`" for s, m in ch["apply"].items())
+            what = f"Models: {moves} (was `{old}` on every step; `temperature: 0` removed: the new model rejects it)"
+        else:
+            what = f"`{target['prompts_dir']}/{ch['step']}.txt` line {ch['line_index'] + 1}"
+        note = " **Edited by the reviewer; not re-tested.** Re-run upshift before merging." if ch["decision"] == "edited" else ""
+        rows.append(f"- {what}.{note}")
+        if ch["kind"] == "line":
+            rows.append(f"  ```diff\n  - {ch['old']}\n  + {ch['apply']}\n  ```")
+    left_out = "".join(f"\n- Not included ({ch['decision']}): {ch['id']}" for ch in skipped)
+    repaired = next(s["repair"]["n"] for s in demo["per_step"] if s["guilty"])
+    return f"""## Why
+`{old}` shuts down on Oct 23, 2026. This moves the agent to `{demo['pair']['new']}`.
+
+## What changes
+{chr(10).join(rows)}{left_out}
+
+## What upshift found
+- Switching only the model, the **tone** step started deleting the "5–7 business days" refund timeline from replies.
+- Putting `{old}` back at the tone step alone fixes {repaired}/{c['regressed_dev']} broken test cases; no other step fixes any.
+- Removing tone line {p['edits'][0]['line_index'] + 1} alone fixes them too; the prompt change above rewrites that line.
+
+## Evidence
+- Test cases that got worse: {c['regressed_dev'] + c['regressed_heldout_before']} → {after} of {c['dev_tickets'] + c['heldout_tickets']} ({c['runs_per_ticket']} runs each), including {p['heldout_before']['REGRESSED']} → {p['heldout_after']['REGRESSED']} on {c['heldout_tickets']} test cases the fix never saw.
+- Replies passing every check: {demo['quality']['old']['passed_all']:.1%} before, {demo['quality']['new_fixed']['passed_all']:.1%} after.
+- Model cost per 1,000 test cases: ${t['all_old']:.2f} → ${demo['fallback']['usd_per_1k']:.2f}.
+- The test cases are hand-written; the model outputs are real recorded runs.
+
+Opened by upshift from the reviewer's decisions on the dashboard.
+"""
+
+
 def main():
     req = json.load(sys.stdin)
     target = yaml.safe_load((HERE / "config" / "target_repo.yml").read_text())
     data = json.loads((HERE / "reports" / "demo" / "results.json").read_text())
     demo = data["demo"]
-    applied, skipped = plan(req.get("changes") or [], demo)
+    option = req.get("option") or "cheap"
+    if option not in OPTIONS:
+        raise ValueError(f"unknown option {option!r}")
+    applied, skipped = plan(req.get("changes") or [], demo, option)
     if not applied:
         raise ValueError("accept or edit at least one change first")
     digest = hashlib.sha256(json.dumps([[c["id"], c["apply"]] for c in applied]).encode()).hexdigest()[:8]
-    branch = f"upshift/cheaper-models-{digest}"
+    branch = f"upshift/{'cheaper-models' if option == 'cheap' else demo['pair']['new']}-{digest}"
     repo = target["repo"]
     out = {"branch": branch, "repo": repo, "applied": [c["id"] for c in applied], "skipped": [c["id"] for c in skipped]}
 
@@ -156,12 +203,14 @@ def main():
         sh("git", "checkout", "-b", branch, cwd=d)
         apply(d, target, applied)
         sh("git", "add", "-A", cwd=d)
-        sh("git", "commit", "-m", f"Move the support agent off {demo['pair']['old']} to cheaper models", cwd=d)
+        sh("git", "commit", "-m", f"Move the support agent off {demo['pair']['old']} to {'cheaper models' if option == 'cheap' else demo['pair']['new']}", cwd=d)
         # upshift/* branches belong to upshift: overwrite one left behind by a closed PR.
         sh("git", "push", "--force", "-u", "origin", branch, cwd=d)
-        title = "Move the support agent to cheaper models" + ("; keep lowercase order IDs working" if any(c["kind"] == "line" for c in applied) else "")
+        has_line = any(c["kind"] == "line" for c in applied)
+        title = (f"Move the support agent to cheaper models" + ("; keep lowercase order IDs working" if has_line else "") if option == "cheap"
+                 else f"Move the support agent to {demo['pair']['new']}" + ("; keep the refund timeline in the tone check" if has_line else ""))
         bf = Path(tmp) / "body.md"
-        bf.write_text(body(data, target, applied, skipped))
+        bf.write_text(body(data, target, applied, skipped, option))
         url = sh("gh", "pr", "create", "--repo", repo, "--base", target["base"], "--head", branch,
                  "--title", title, "--body-file", str(bf), cwd=d).splitlines()[-1]
     print(json.dumps({**out, "url": url, "existed": False}))

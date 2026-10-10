@@ -278,7 +278,11 @@ def main():
         mix = pool["mix"]["assignment"]
         api = retest["cost"]["api_usd_per_1k"]
         fix = retest["fix"]
-        data["demo"]["fallback"] = {**data["demo"]["recommended"], "label": "gpt-5.6-sol on every step + the tone fix"}
+        data["demo"]["fallback"] = {
+            **data["demo"]["recommended"], "label": "gpt-5.6-sol on every step + the tone fix",
+            "params": {st: {} for st in A.STEPS},
+            "edits": [{"step": patch["step"], "line_index": e["line_index"], "old": e["old"], "new": e["new"]}
+                      for e in patch["edits"]]}
         data["demo"]["recommended"] = {
             "config": "cheap_mix", "assignment": mix,
             "params": {st: pool_params.get(m, {}) for st, m in mix.items()},
@@ -294,6 +298,29 @@ def main():
             c["summary"]["recommended"] = False
         data["pr"]["title"] = "Move the support agent to cheaper models; keep order IDs working in classify"
         data["pr"]["lines_changed"] = 1
+
+        # Every test case, old vs new: gpt-4, sol as-is, sol + tone fix, cheap mix + classify fix (3 runs each).
+        def cell(path, tid):
+            rows = load(HERE / "results" / path).get(tid) if path else None
+            if not rows:
+                return None
+            ok = sum(bool(r.get("passed_all")) for r in rows)
+            return {"passed": ok, "of": len(rows), "output": describe(rows[0]),
+                    "failed": sorted({k for r in rows for k, v in (r.get("checks") or {}).items() if v is False})[:4]}
+        sets = [("dev", "agent", "", "", "-fixed", "-fixed"), ("hard", "agent_hard", "__hard", "__hard", None, None),
+                ("holdout2", "agent_holdout2", "__holdout2", "__holdout2", "__holdout2", None),
+                ("fresh3", "agent_fresh3", "__fresh3", None, "__fresh3", None)]
+        cases = []
+        for split, setname, sfx, _, _, _ in sets:
+            for t in A.load_tickets(sets=(setname,)):
+                mixf = {"dev": "agent__pool-mix-fixed.jsonl", "holdout2": "agent__pool-mix-fixed__holdout2.jsonl",
+                        "fresh3": "agent__pool-mix-fixed__fresh3.jsonl"}.get(split)
+                solfix = f"agent__gpt-5.6-sol-np__patch-{tag}{sfx}.jsonl"
+                solraw = f"agent__gpt-5.6-sol__noplant{sfx}.jsonl" if split != "fresh3" else None
+                cases.append({"id": t["id"], "split": split, "text": t["text"], "expected": t.get("gold"), "tricky": bool(t.get("tricky")),
+                              "note": t.get("note"), "old": cell(f"agent__gpt-4__noplant{sfx}.jsonl", t["id"]),
+                              "sol": cell(solraw, t["id"]), "sol_fix": cell(solfix, t["id"]), "cheap_fix": cell(mixf, t["id"])})
+        data["demo"]["cases"] = cases
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps(data, indent=2, default=str) + "\n")
     s = sol["summary"]

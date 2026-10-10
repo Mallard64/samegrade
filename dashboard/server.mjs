@@ -225,7 +225,7 @@ http.createServer(async (req, res) => {
       id: String(c?.id || '').slice(0, 20), decision: String(c?.decision || '').slice(0, 20),
       ...(c?.text != null ? {text: String(c.text).slice(0, 2000)} : {})})) : null;
     if (!changes) return sendJSON(res, 400, {error: 'expected {changes: [...]}'});
-    const out = await createPR({changes});
+    const out = await createPR({changes, option: body?.option === 'sol' ? 'sol' : 'cheap'});
     return sendJSON(res, out.error ? 502 : 200, out);
   }
   if (url.pathname === '/api/replay' || url.pathname === '/api/replay/stop') {
