@@ -56,7 +56,7 @@ function slideResults(data) {
     <div class="sl-kpi">
       <span class="sl-label">Test cases that got worse</span>
       <strong>${before} → ${after}</strong>
-      <small>${cheap ? `${esc(d.mix_before.regressed.join(', '))} got worse before the fixes (${d.mix_before.of} test cases run). After: ${after} of ${cases}. Only the ${r.fresh3.mix.of} newest weren't used to write the fixes.` : `before → after the fix, across ${c.dev_tickets + c.heldout_tickets} test cases`}</small>
+      <small>${cheap ? `before → after the fixes` : `before → after the fix, across ${c.dev_tickets + c.heldout_tickets} test cases`}</small>
     </div>
     <div class="sl-kpi">
       <span class="sl-label">Accuracy</span>
@@ -446,7 +446,7 @@ function slidePR(data) {
   <ul class="dm-summary">
     <li><strong>Where:</strong> ${sol ? `the <span class="dm-mono">${esc(rec.edits[0].step)}</span> step` : `all 4 steps, and the ${[...new Set(rec.edits.map(e => e.step))].map(x => `<span class="dm-mono">${esc(x)}</span>`).join(' and ')} prompts`}.</li>
     <li><strong>What:</strong> ${sol ? `the model swap to ${esc(d.pair.new)}` : 'a cheaper model on each step'} and ${rec.edits.length} prompt line${rec.edits.length > 1 ? 's' : ''}.</li>
-    <li><strong>Proof:</strong> ${sol ? `test cases that got worse ${d.confidence.regressed_dev + d.confidence.regressed_heldout_before} → ${data.candidates[0].summary.verdict_counts_after_fix?.REGRESSED} of ${d.confidence.dev_tickets + d.confidence.heldout_tickets} (practice + hard), including ${d.patch.heldout_before.REGRESSED} → ${d.patch.heldout_after.REGRESSED} on the 12 hard test cases the fix never saw.` : `test cases that got worse: ${d.mix_before.regressed.length} of ${d.mix_before.of} before the fixes → ${worse} of ${total} after (24 practice, 12 holdout, ${r.fresh3.mix.of} newest; only the newest weren't used to write the fixes).`}</li>
+    <li><strong>Proof:</strong> ${sol ? `test cases that got worse ${d.confidence.regressed_dev + d.confidence.regressed_heldout_before} → ${data.candidates[0].summary.verdict_counts_after_fix?.REGRESSED} of ${d.confidence.dev_tickets + d.confidence.heldout_tickets} (practice + hard), including ${d.patch.heldout_before.REGRESSED} → ${d.patch.heldout_after.REGRESSED} on the 12 hard test cases the fix never saw.` : `test cases that got worse ${d.mix_before.regressed.length} → ${worse}.`}</li>
     <li><strong>Cost:</strong> ${usd(d.totals_usd_per_1k.all_old)} → ${usd(rec.usd_per_1k)} per 1,000 test cases.</li>
   </ul>
   ${items}
