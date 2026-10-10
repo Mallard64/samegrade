@@ -146,7 +146,7 @@ def main():
         print(f"\n{BOLD}Result:{RESET} gpt-5.6-sol with the tone fix: 0 of 36 test cases (practice + hard) worse, ${fb['usd_per_1k']:.2f} per 1,000 test cases (safer, costlier fallback).")
         print(f"{BOLD}Recommended:{RESET} the cheapest model per step ({mix}) plus a classify line and the tone line: "
               f"${t['all_old']:.2f} → ${rec['usd_per_1k']:.2f} per 1,000 test cases ({rec['savings_vs_all_old_pct']:.0f}% lower, API calls only), "
-              f"0 of 44 test cases (24 practice, 12 holdout, 8 newest) worse after the fix (the newest set is small). Open the dashboard for savings, evidence and the PR.")
+              f"0 of 44 test cases (24 practice, 12 holdout, 8 newest) worse after the fixes, 1 of 36 before; only the 8 newest weren't used to write the fixes. Open the dashboard for savings, evidence and the PR.")
         if server:
             print(f"{DIM}Dashboard stays up. Ctrl+C to stop.{RESET}")
             server.wait()

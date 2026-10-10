@@ -284,6 +284,14 @@ def main():
         data["demo"]["sol_cost"] = {"table_no_fix": sol_model["usd_per_1k"],
                                     "same_cases_no_fix": total(usage_per_step(sol_files)),
                                     "same_cases_fixed": totals["all_new"]}
+        # The mix before the fixes, on the two sets it was run on (the newest set was only run with the fixes).
+        unfixed = [build_report(HERE / "results" / a, HERE / "results" / b) for a, b in [
+            ("agent__gpt-4__noplant.jsonl", "agent__pool-mix-clluna-deluna-drluna-to8b.jsonl"),
+            ("agent__gpt-4__noplant__holdout2.jsonl", "agent__pool-mix-clluna-deluna-drluna-to8b__holdout2.jsonl")]]
+        data["demo"]["mix_before"] = {
+            "of": sum(r["inputs_compared"] for r in unfixed),
+            "regressed": [it["input_id"] for r in unfixed for it in r["items"] if it["verdict"] == "REGRESSED"],
+            "sets": "24 practice + 12 holdout"}
         data["demo"]["fallback"] = {
             **data["demo"]["recommended"], "label": "gpt-5.6-sol on every step + the tone fix",
             "params": {st: {} for st in A.STEPS},

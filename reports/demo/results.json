@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "_note": "Real runs of the 4-step support agent (clean prompts, nothing planted). Test cases are hand-written (synthetic); model behavior is real. cost_per_1k_calls_usd = per 1k test case runs (4 calls).",
-  "run_id": "2026-10-10T22:00:51Z",
+  "run_id": "2026-10-10T23:23:42Z",
   "repo": {
     "name": "upshift support agent (demo)",
     "call_site": "support_agent.py: PROMPTS['tone']"
@@ -2790,6 +2790,13 @@
       "table_no_fix": 8.76,
       "same_cases_no_fix": 9.046,
       "same_cases_fixed": 7.8432
+    },
+    "mix_before": {
+      "of": 36,
+      "regressed": [
+        "t42"
+      ],
+      "sets": "24 practice + 12 holdout"
     },
     "fallback": {
       "config": "all_new",

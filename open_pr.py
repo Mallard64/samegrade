@@ -132,7 +132,7 @@ def body(data, target, applied, skipped, option="cheap"):
 - {local} runs on a local open-source model, so it needs Ollama (or equivalent) where the agent runs.
 
 ## Evidence
-- Test cases that got worse after the fix: {worse} of {total} (24 practice, 12 holdout, {r['fresh3']['mix']['of']} newest; 3 runs each). The newest set is small, so treat this as encouraging, not proof.
+- Test cases that got worse: {len(demo['mix_before']['regressed'])} of {demo['mix_before']['of']} before the fixes ({', '.join(demo['mix_before']['regressed'])}), {worse} of {total} after (24 practice, 12 holdout, {r['fresh3']['mix']['of']} newest; 3 runs each). Only the newest were not used to write the fixes, and that set is small, so treat this as encouraging, not proof.
 - Model cost per 1,000 test cases: ${demo['totals_usd_per_1k']['all_old']:.2f} → ${rec['usd_per_1k']:.2f} in API calls, plus about {round(rec['self_hosted_tokens_per_ticket'])} tokens per test case on your own computer (not priced).
 - Safer, costlier fallback: `gpt-5.6-sol` on every step plus a tone-line fix, ${demo['fallback']['usd_per_1k']:.2f} per 1,000 test cases.
 - The test cases are hand-written; the model outputs are real recorded runs.
