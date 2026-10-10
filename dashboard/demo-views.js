@@ -48,7 +48,6 @@ function slideResults(data) {
   const after = cheap ? sets.reduce((n, x) => n + x.regressed, 0) : data.candidates[0].summary.verdict_counts_after_fix?.REGRESSED;
   const passed = cheap ? sets.reduce((n, x) => n + x.passed_all * x.of, 0) / cases : q.new_fixed.passed_all;
   const vol = demoState.volume ?? d.monthly_requests_default;
-  const price = Object.values(d.prices)[0] || {};
   return `
   <p class="sl-kicker">${esc(d.pair.old)} → ${cheap ? 'cheaper models' : esc(d.pair.new)} · 4-step support agent · gpt-4 shuts down Oct 23</p>
   ${chooser(d)}
@@ -57,17 +56,17 @@ function slideResults(data) {
     <div class="sl-kpi">
       <span class="sl-label">Test cases that got worse</span>
       <strong>${before} → ${after}</strong>
-      <small>${cheap ? `${before} on the first try, ${after} of ${cases} after the two prompt fixes (24 practice, 12 holdout, ${r.fresh3.mix.of} newest). The newest set is small.` : `out of ${c.dev_tickets + c.heldout_tickets} test cases (24 practice + 12 hard), before → after the fix.`}</small>
+      <small>${cheap ? `before → after the fixes, across ${cases} test cases` : `before → after the fix, across ${c.dev_tickets + c.heldout_tickets} test cases`}</small>
     </div>
     <div class="sl-kpi">
       <span class="sl-label">Accuracy</span>
       <strong>${pct(q.old.passed_all)} → ${pct(passed)}</strong>
-      <small>replies passing every check${cheap ? ` across ${cases} test cases` : ` (${pct(q.new_as_is.passed_all)} without the fix)`}. Correct-answer score ${q.old.gold.toFixed(3)} → ${(cheap ? 1 : q.new_fixed.gold).toFixed(3)}.</small>
+      <small>replies passing every check</small>
     </div>
     <div class="sl-kpi sl-kpi-good">
       <span class="sl-label">Model cost per 1,000 test cases</span>
       <strong>${usd(old)} → ${usd(rec.usd_per_1k)}</strong>
-      <small>${Math.round((1 - rec.usd_per_1k / old) * 100)}% lower${rec.api_only ? `, API calls only. The ${esc(rec.self_hosted_steps.join(', '))} step runs on your own computer (about ${Math.round(rec.self_hosted_tokens_per_ticket)} tokens per test case, not priced).` : ''}</small>
+      <small>${Math.round((1 - rec.usd_per_1k / old) * 100)}% lower${rec.api_only ? ` · the ${esc(rec.self_hosted_steps.join(', '))} step runs locally` : ''}</small>
     </div>
   </div>
   <div class="sl-calc">
@@ -77,9 +76,7 @@ function slideResults(data) {
       You save <strong class="dm-good" id="dm-save">${usd(vol * (old - rec.usd_per_1k) / 1000, 0)}</strong> a month.</p>
   </div>
   ${caseGrid(d)}
-  ${liveButtons(d)}
-  <p class="sl-foot">Real model runs on hand-written test cases, ${c.runs_per_ticket} runs each. Same prompts, tools and test cases on both sides; only the models changed.
-    Cost = measured tokens × list prices (${esc(price.source)}, checked ${esc(price.checked)}); model cost only. The volume is your number.</p>`;
+  ${liveButtons(d)}`;
 }
 
 // ---- Every test case: input, expected answer, and what each model said ---------------------------------------
@@ -92,7 +89,7 @@ function caseGrid(d) {
     const r = c[key], state = !r ? 'na' : r.passed === r.of ? 'ok' : 'bad';
     return `<button class="sl-case ${state}" data-case="${i}" title="${esc(c.id)} · ${!r ? 'not run for this option' : `${r.passed}/${r.of} runs passed every check`}" aria-label="Test case ${esc(c.id)}, ${state === 'ok' ? 'passed' : state === 'bad' ? 'failed' : 'not run'}">${esc(c.id.replace(/^t/, ''))}</button>`;
   }).join('');
-  return `<div class="sl-cases"><p class="sl-label">Every test case, for ${demoState.choice === 'sol' ? 'gpt-5.6-sol + tone fix' : 'the cheapest mix'} · click one to compare old and new</p>
+  return `<div class="sl-cases"><p class="sl-label">Every test case · click one to compare old and new</p>
     <div class="sl-case-grid">${tiles}</div>
     <p class="dm-foot"><span class="sl-case ok sl-key"></span> passed every check in all runs <span class="sl-case bad sl-key"></span> failed a check <span class="sl-case na sl-key"></span> not run for this option</p></div>`;
 }
@@ -125,7 +122,7 @@ function liveButtons(d) {
   const L = demoState.live;
   return `<div class="lv-start"><button class="button primary" id="dm-live-open">▶ Run live</button>
     ${L ? `<button class="button" data-live-view>View ${L.state === 'running' ? 'the run in progress' : 'last live run'}</button>` : ''}
-    <span class="dm-foot">Calls the real models on these test cases, instead of replaying recorded runs. It costs money; you'll see an estimate first.</span></div>`;
+    <span class="dm-foot">Real model calls. Costs money; shows an estimate first.</span></div>`;
 }
 
 function openLiveConfirm(data, only) {
@@ -138,14 +135,13 @@ function openLiveConfirm(data, only) {
       ${scopes}${only ? `<p><strong>Test case ${esc(only)}</strong> only.</p>` : ''}
       <label class="dm-label" for="lv-runs">Runs per test case</label><select id="lv-runs" class="dm-input"><option value="1">1</option><option value="3">3 (measures run-to-run noise)</option></select>
       <p id="lv-est" class="dm-foot" aria-live="polite"></p>
-      <p class="dm-foot">Uses the OpenAI key in the environment of the server${sol ? '' : ', and Ollama on this computer for the tone step'}. Hard cap: ${usd(demoState.liveCap)} per run; it stops by itself if it gets there. Rows are saved to a new file in <span class="dm-mono">results/</span>; recorded runs aren't touched.</p>
       <div class="dm-actions"><button class="button primary" id="lv-go">Start live run</button><button class="button" id="lv-cancel">Cancel</button></div>
       <p id="lv-err" class="dm-bad" role="alert"></p>
     </div>`;
   const est = () => {
     const n = only ? 1 : SCOPE_N[dialog.querySelector('#lv-scope').value], runs = Number(dialog.querySelector('#lv-runs').value);
     const cost = n * runs * rec.usd_per_1k / 1000;
-    dialog.querySelector('#lv-est').innerHTML = `${n * runs} test case runs × 4 steps. Estimated model cost <strong>about ${cost < 0.01 ? '$' + cost.toFixed(3) : usd(cost)}</strong>${sol ? '' : ' in API calls (the tone step runs locally and isn\'t priced)'}. Based on measured tokens in the recorded runs.`;
+    dialog.querySelector('#lv-est').innerHTML = `${n * runs} runs · estimated cost <strong>about ${cost < 0.01 ? '$' + cost.toFixed(3) : usd(cost)}</strong> · stops at ${usd(demoState.liveCap)}.`;
   };
   dialog.querySelectorAll('select').forEach(x => x.onchange = est);
   est();
@@ -269,9 +265,7 @@ function slideModels(data) {
       <th scope="col" class="dm-num">Total per 1,000 test cases</th><th scope="col" class="dm-num">Got worse alone<br><small>practice · hard · holdout</small></th></tr></thead>
     <tbody>${rows}</tbody>
   </table></div>
-  <p class="sl-foot">Costs are per 1,000 test cases. "Got worse alone": each model ran the whole agent with no prompt changes, 3 runs per test case, against gpt-4 on 24 practice, 12 hard and 12 holdout test cases (48).
-    ✓ marks the cheapest model that passed that step (next slide). ${esc(d.pool?.self_hosted_note || '')}
-    ${d.sol_cost ? `<br>gpt-5.6-sol is ${usd(d.sol_cost.table_no_fix)} here (no prompt fix, 24 practice + 12 hard + 12 holdout = 48 test cases). The other slides show ${usd(d.sol_cost.same_cases_fixed)} for sol with the tone fix on 24 practice + 12 hard = 36 test cases: the same 36 cost ${usd(d.sol_cost.same_cases_no_fix)} without the fix, because the fixed tone step uses fewer tokens.` : ''}</p>`;
+  <p class="sl-foot">✓ = cheapest model that passed that step. ${d.sol_cost ? `gpt-5.6-sol is ${usd(d.sol_cost.table_no_fix)} here, without the fix. With the fix it's ${usd(d.sol_cost.same_cases_fixed)}: the fixed step uses fewer tokens.` : ''}</p>`;
 }
 
 // ---- Slide 3: cheapest safe choice + fixes -------------------------------------------------------------
@@ -289,12 +283,11 @@ function slideChoice(data) {
     <section class="sl-option${demoState.choice === 'cheap' ? ' sl-option-rec' : ''}" aria-labelledby="sl-a">
       <span class="dm-pill accepted">Recommended · cheapest</span>
       <h3 id="sl-a">${STEPS.map(s => `${s} → <span class="dm-mono">${esc(rec.assignment[s])}</span>`).join(', ')}</h3>
-      <p class="sl-price">${usd(rec.usd_per_1k)} <small>per 1,000 test cases in API calls, plus about ${Math.round(r.cost.self_hosted_tokens_per_ticket)} tokens per test case on your own computer</small></p>
+      <p class="sl-price">${usd(rec.usd_per_1k)} <small>per 1,000 test cases, API calls only</small></p>
       <p><strong>First try:</strong> ${p.mix.holdout2.regressed.map(esc).join(', ')} got worse. The order ID was typed in lowercase ("a1005") and the classify step dropped it.</p>
       <p><strong>Fixes (the mix was tested with both):</strong> the classify prompt, then the tone prompt written for sol.</p>
       ${rec.edits.map(e => diff(e.old, e.new)).join('')}
-      <p><strong>After the fix:</strong> ${r.dev.regressed} of ${r.dev.of} practice test cases and ${r.fresh3.mix.regressed} of ${r.fresh3.mix.of} newest test cases got worse.
-        Encouraging, but ${r.fresh3.mix.of} test cases is a small test, and the cost of running the model yourself isn't measured.</p>
+      <p><strong>After the fixes:</strong> ${r.dev.regressed} of ${r.dev.of} practice and ${r.fresh3.mix.regressed} of ${r.fresh3.mix.of} newest test cases got worse. The newest set is small.</p>
       <button class="button${demoState.choice === 'cheap' ? ' primary' : ''}" data-choice="cheap" aria-pressed="${demoState.choice === 'cheap'}">${demoState.choice === 'cheap' ? '✓ Selected' : 'Choose this option'}</button>
     </section>`;
   const safer = `
@@ -317,9 +310,7 @@ function slideChoice(data) {
   <div class="sl-options">
     ${main}
     ${safer}
-  </div>
-  <p class="sl-foot">Step-finder on a practice test with planted bugs: ${frac(d.benchmark.held_out_exact)} exact; ${d.benchmark.partial.n} partially right (${d.benchmark.partial.missed} missed a step, ${d.benchmark.partial.extra} named an extra one),
-    on held-out breaks (${esc(d.benchmark.source)}).</p>`;
+  </div>`;
 }
 
 // ---- Slide 4: the pull request -------------------------------------------------------------------------
@@ -373,8 +364,8 @@ function slidePR(data) {
   <ul class="dm-summary">
     <li><strong>Where:</strong> ${sol ? `the <span class="dm-mono">${esc(rec.edits[0].step)}</span> step` : `all 4 steps, and the ${[...new Set(rec.edits.map(e => e.step))].map(x => `<span class="dm-mono">${esc(x)}</span>`).join(' and ')} prompts`}.</li>
     <li><strong>What:</strong> ${sol ? `the model swap to ${esc(d.pair.new)}` : 'a cheaper model on each step'} and ${rec.edits.length} prompt line${rec.edits.length > 1 ? 's' : ''}.</li>
-    <li><strong>Proof:</strong> ${sol ? `test cases that got worse ${d.confidence.regressed_dev + d.confidence.regressed_heldout_before} → ${data.candidates[0].summary.verdict_counts_after_fix?.REGRESSED} of ${d.confidence.dev_tickets + d.confidence.heldout_tickets} (practice + hard), including ${d.patch.heldout_before.REGRESSED} → ${d.patch.heldout_after.REGRESSED} on the 12 hard test cases the fix never saw.` : `test cases that got worse ${d.pool.mix.holdout2.regressed.length} on the first try → ${worse} of ${total} after the fix (24 practice, 12 holdout, ${r.fresh3.mix.of} newest). ${r.fresh3.mix.of} newest test cases is a small test.`}</li>
-    <li><strong>Cost:</strong> ${usd(d.totals_usd_per_1k.all_old)} → ${usd(rec.usd_per_1k)} per 1,000 test cases${sol ? '' : ` (API calls only; the ${esc(rec.self_hosted_steps.join(', '))} step runs locally)`}.</li>
+    <li><strong>Proof:</strong> ${sol ? `test cases that got worse ${d.confidence.regressed_dev + d.confidence.regressed_heldout_before} → ${data.candidates[0].summary.verdict_counts_after_fix?.REGRESSED} of ${d.confidence.dev_tickets + d.confidence.heldout_tickets} (practice + hard), including ${d.patch.heldout_before.REGRESSED} → ${d.patch.heldout_after.REGRESSED} on the 12 hard test cases the fix never saw.` : `test cases that got worse ${d.pool.mix.holdout2.regressed.length} on the first try → ${worse} of ${total} after the fix (24 practice, 12 holdout, ${r.fresh3.mix.of} newest).`}</li>
+    <li><strong>Cost:</strong> ${usd(d.totals_usd_per_1k.all_old)} → ${usd(rec.usd_per_1k)} per 1,000 test cases.</li>
   </ul>
   ${items}
   ${create}`;
