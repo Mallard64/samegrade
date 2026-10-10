@@ -207,7 +207,7 @@ function renderVisualDashboard() {
   document.querySelectorAll('#pp-initial .pipe-tile[data-ti],#pp-final .pipe-tile[data-ti]').forEach(b=>b.addEventListener('click',()=>{selectTicket(m,Number(b.dataset.ti));document.querySelector('#pp-step').scrollIntoView({behavior:'smooth',block:'start'});}));
   installPipeline(m);return;
  }
- document.querySelectorAll('.repair-chart,.evidence-card,.checks-card,.delivery-strip').forEach(el=>el.remove());
+ document.querySelectorAll('.repair-chart,.evidence-card,.delivery-strip').forEach(el=>el.remove());
  installDashboardMotion(m);
 }
 function installDashboardMotion(m) {
@@ -220,7 +220,8 @@ function installDashboardMotion(m) {
  heading.querySelector('#jump-comparison').onclick=()=>comparison.scrollIntoView({behavior:reduce.matches?'instant':'smooth',block:'start'});
 
  const observer=new IntersectionObserver(items=>items.forEach(item=>{if(item.isIntersecting){item.target.classList.add('motion-visible');observer.unobserve(item.target);}}),{threshold:0.12});
- comparison.classList.add('motion-ready');observer.observe(comparison);
+ for(const el of [comparison,app.querySelector('.checks-card')]){if(el){el.classList.add('motion-ready');observer.observe(el);}}
+ app.querySelectorAll('.mosaic-cell').forEach((el,i)=>el.style.setProperty('--reveal-delay',`${i*22}ms`));
  let frame=0;
  function update(){frame=0;const progress=reduce.matches?0:Math.min(1,Math.max(0,-heading.getBoundingClientRect().top/heading.offsetHeight));heading.style.setProperty('--hero-p',progress);}
  function onScroll(){if(!frame)frame=requestAnimationFrame(update);}
