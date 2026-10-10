@@ -274,24 +274,48 @@ def main():
         }
     retest = data["demo"].get("pool", {}).get("retest") if pool_path.exists() else None
     if retest:
-        # The cheap mix is the main recommendation; sol + the tone fix stays as the safer, costlier fallback.
+        # Everything on screen uses one standard set: 24 practice + 12 hard = 36 test cases, for both options and for
+        # every model in the table, always against the same gpt-4 baselines. The cheap mix is the main recommendation;
+        # sol + the tone fix stays as the safer, costlier fallback.
+        R_ = HERE / "results"
         pool_params = {m["model"]: m["params"] for m in pool["pool"]}
         mix = pool["mix"]["assignment"]
-        api = retest["cost"]["api_usd_per_1k"]
         fix = retest["fix"]
-        # Slide 2 lists sol with no fix on 48 test cases; slides 1, 3, 4 use sol + the tone fix on the 36 practice + hard ones.
-        sol_model = next(m for m in data["demo"]["models"] if m["model"] == "gpt-5.6-sol")
-        data["demo"]["sol_cost"] = {"table_no_fix": sol_model["usd_per_1k"],
-                                    "same_cases_no_fix": total(usage_per_step(sol_files)),
-                                    "same_cases_fixed": totals["all_new"]}
-        # The mix before the fixes, on the two sets it was run on (the newest set was only run with the fixes).
-        unfixed = [build_report(HERE / "results" / a, HERE / "results" / b) for a, b in [
-            ("agent__gpt-4__noplant.jsonl", "agent__pool-mix-clluna-deluna-drluna-to8b.jsonl"),
-            ("agent__gpt-4__noplant__holdout2.jsonl", "agent__pool-mix-clluna-deluna-drluna-to8b__holdout2.jsonl")]]
-        data["demo"]["mix_before"] = {
-            "of": sum(r["inputs_compared"] for r in unfixed),
-            "regressed": [it["input_id"] for r in unfixed for it in r["items"] if it["verdict"] == "REGRESSED"],
-            "sets": "24 practice + 12 holdout"}
+        std = {"dev": ("agent__gpt-4__noplant.jsonl", "agent__pool-mix-fixed.jsonl"),
+               "hard": ("agent__gpt-4__noplant__hard.jsonl", "agent__pool-mix-fixed__hard.jsonl")}
+        reps = {k: build_report(R_ / a, R_ / b) for k, (a, b) in std.items()}
+        n36 = sum(r["inputs_compared"] for r in reps.values())
+        wavg = lambda side, key: sum(r[side][key] * r["inputs_compared"] for r in reps.values()) / n36
+        pick = lambda v: [it["input_id"] for r in reps.values() for it in r["items"] if it["verdict"] == v]
+        per36 = usage_per_step([R_ / b for _, b in std.values()])
+        api = round(sum(v["usd_per_1k"] or 0 for v in per36.values()), 4)
+        local_tokens = round(sum(v["prompt_tokens"] + v["completion_tokens"] for v in per36.values() if v["usd_per_1k"] is None), 1)
+        data["demo"]["mix_std"] = {
+            "of": n36, "sets": "24 practice + 12 hard",
+            "regressed": pick("REGRESSED"), "improved": pick("IMPROVED"), "changed": pick("CHANGED"),
+            "passed_all": {"old": wavg("baseline", "passed_all"), "new": wavg("candidate", "passed_all")},
+            "gold": {"old": wavg("baseline", "accuracy"), "new": wavg("candidate", "accuracy")}}
+        # Other test sets the mix was also run on. Not on the slides; listed in the PR text.
+        def extra(a, b):
+            r = build_report(R_ / a, R_ / b)
+            return {"of": r["inputs_compared"], "regressed": [it["input_id"] for it in r["items"] if it["verdict"] == "REGRESSED"]}
+        data["demo"]["extra_tests"] = {
+            "holdout": extra("agent__gpt-4__noplant__holdout2.jsonl", "agent__pool-mix-fixed__holdout2.jsonl"),
+            "newer": extra("agent__gpt-4__noplant__fresh3.jsonl", "agent__pool-mix-fixed__fresh3.jsonl"),
+            "newest": extra("agent__gpt-4__noplant__fresh4.jsonl", "agent__pool-mix-fixed__fresh4.jsonl")}
+        # The model table, on the same 36 test cases (each model with no prompt changes).
+        for m in data["demo"]["models"]:
+            if m["role"] == "today":
+                continue
+            lab = m["model"].replace("/", "-").replace(":", "-")
+            per = usage_per_step([R_ / f"agent__{lab}__noplant.jsonl", R_ / f"agent__{lab}__noplant__hard.jsonl"])
+            m["per_step"] = {st: {"usd_per_1k": v["usd_per_1k"], "tokens": round(v["prompt_tokens"] + v["completion_tokens"])}
+                             for st, v in per.items()}
+            m["usd_per_1k"] = round(sum(v["usd_per_1k"] for v in per.values()), 4) if all(v["usd_per_1k"] is not None for v in per.values()) else None
+            m["tokens_per_ticket"] = round(sum(v["prompt_tokens"] + v["completion_tokens"] for v in per.values()), 1)
+            m["sets"] = {k: v for k, v in m["sets"].items() if k in ("dev", "hard")}
+        sol_row = next(m for m in data["demo"]["models"] if m["model"] == "gpt-5.6-sol")
+        data["demo"]["sol_cost"] = {"table_no_fix": sol_row["usd_per_1k"], "fixed": totals["all_new"]}
         data["demo"]["fallback"] = {
             **data["demo"]["recommended"], "label": "gpt-5.6-sol on every step + the tone fix",
             "params": {st: {} for st in A.STEPS},
@@ -302,42 +326,37 @@ def main():
             "params": {st: pool_params.get(m, {}) for st, m in mix.items()},
             "usd_per_1k": api, "api_only": True,
             "self_hosted_steps": pool["mix"]["self_hosted_steps"],
-            "self_hosted_tokens_per_ticket": retest["cost"]["self_hosted_tokens_per_ticket"],
+            "self_hosted_tokens_per_ticket": local_tokens,
             # The tested mix ran with both fixes: the classify line and the tone line written for sol (mix_retest.py).
             "edits": [{"step": fix["step"], "line_index": fix["line_index"], "old": fix["old"], "new": fix["new"],
                        "summary": "Keep lowercase order IDs working"}] +
                      [{"step": patch["step"], "line_index": e["line_index"], "old": e["old"], "new": e["new"],
                        "summary": "Keep the refund timeline in the tone check"} for e in patch["edits"]],
             "savings_vs_all_old_pct": round((1 - api / old_cost) * 100, 1),
-            "why": "cheapest models that passed each step, plus a classify line and the tone line; 0 of 44 test cases got worse after the fix "
-                   "(24 practice, 12 holdout, 8 newest). The newest set is small.",
+            "why": "cheapest models that passed each step, plus a classify line and the tone line",
         }
         for c in data["candidates"]:
             c["summary"]["recommended"] = False
         data["pr"]["title"] = "Move the support agent to cheaper models; keep order IDs working in classify"
         data["pr"]["lines_changed"] = 2
 
-        # Every test case, old vs new: gpt-4, sol as-is, sol + tone fix, cheap mix + classify fix (3 runs each).
+        # Every test case, old vs new: gpt-4, sol as-is, sol + tone fix, cheap mix + both fixes (3 runs each).
         def cell(path, tid):
-            rows = load(HERE / "results" / path).get(tid) if path else None
+            rows = load(R_ / path).get(tid) if path and (R_ / path).exists() else None
             if not rows:
                 return None
             ok = sum(bool(r.get("passed_all")) for r in rows)
             return {"passed": ok, "of": len(rows), "output": describe(rows[0]),
                     "failed": sorted({k for r in rows for k, v in (r.get("checks") or {}).items() if v is False})[:4]}
-        sets = [("dev", "agent", "", "", "-fixed", "-fixed"), ("hard", "agent_hard", "__hard", "__hard", None, None),
-                ("holdout2", "agent_holdout2", "__holdout2", "__holdout2", "__holdout2", None),
-                ("fresh3", "agent_fresh3", "__fresh3", None, "__fresh3", None)]
         cases = []
-        for split, setname, sfx, _, _, _ in sets:
+        for split, setname, sfx, mixf in [("dev", "agent", "", "agent__pool-mix-fixed.jsonl"),
+                                          ("hard", "agent_hard", "__hard", "agent__pool-mix-fixed__hard.jsonl")]:
             for t in A.load_tickets(sets=(setname,)):
-                mixf = {"dev": "agent__pool-mix-fixed.jsonl", "holdout2": "agent__pool-mix-fixed__holdout2.jsonl",
-                        "fresh3": "agent__pool-mix-fixed__fresh3.jsonl"}.get(split)
-                solfix = f"agent__gpt-5.6-sol-np__patch-{tag}{sfx}.jsonl"
-                solraw = f"agent__gpt-5.6-sol__noplant{sfx}.jsonl" if split != "fresh3" else None
                 cases.append({"id": t["id"], "split": split, "text": t["text"], "expected": t.get("gold"), "tricky": bool(t.get("tricky")),
                               "note": t.get("note"), "old": cell(f"agent__gpt-4__noplant{sfx}.jsonl", t["id"]),
-                              "sol": cell(solraw, t["id"]), "sol_fix": cell(solfix, t["id"]), "cheap_fix": cell(mixf, t["id"])})
+                              "sol": cell(f"agent__gpt-5.6-sol__noplant{sfx}.jsonl", t["id"]),
+                              "sol_fix": cell(f"agent__gpt-5.6-sol-np__patch-{tag}{sfx}.jsonl", t["id"]),
+                              "cheap_fix": cell(mixf, t["id"])})
         data["demo"]["cases"] = cases
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps(data, indent=2, default=str) + "\n")

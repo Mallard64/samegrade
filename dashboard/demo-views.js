@@ -8,8 +8,8 @@ const usd = (n, d = 2) => typeof n === 'number' ? '$' + n.toLocaleString('en-US'
 const pct = n => typeof n === 'number' ? `${(n * 100).toFixed(1)}%` : 'n/a';
 const frac = o => o ? `${o.n}/${o.of}` : '–';
 const STEPS = ['classify', 'decide', 'draft', 'tone'];
-// One name per test set, used on every screen: practice 24 · hard 12 · holdout 12 · newest 8 (56 in all).
-const SPLIT = {dev: 'practice', hard: 'hard', holdout2: 'holdout', fresh3: 'newest'};
+// One standard set on every screen: 24 practice + 12 hard = 36 test cases.
+const SPLIT = {dev: 'practice', hard: 'hard'};
 
 const SLIDES = [
   {id: 'results', title: 'The result'},
@@ -41,12 +41,10 @@ const chooser = d => `<div class="sl-choose" role="group" aria-label="Option to 
 function slideResults(data) {
   const d = data.demo, old = d.totals_usd_per_1k.all_old, rec = chosenRec(d), q = d.quality, c = d.confidence;
   const r = d.pool?.retest, cheap = demoState.choice === 'cheap' && rec.config === 'cheap_mix' && r;
-  // The cheap mix is judged on every test case it ran: practice, holdout and newest.
-  const sets = cheap ? [r.dev, r.holdout2_seen, r.fresh3.mix] : [];
-  const cases = sets.reduce((n, x) => n + x.of, 0);
-  const before = cheap ? d.mix_before.regressed.length : c.regressed_dev + c.regressed_heldout_before;
-  const after = cheap ? sets.reduce((n, x) => n + x.regressed, 0) : data.candidates[0].summary.verdict_counts_after_fix?.REGRESSED;
-  const passed = cheap ? sets.reduce((n, x) => n + x.passed_all * x.of, 0) / cases : q.new_fixed.passed_all;
+  const m36 = d.mix_std;   // the cheap mix on the standard 36 test cases, against gpt-4
+  const before = c.regressed_dev + c.regressed_heldout_before;
+  const after = data.candidates[0].summary.verdict_counts_after_fix?.REGRESSED;
+  const passedOld = cheap ? m36.passed_all.old : q.old.passed_all, passedNew = cheap ? m36.passed_all.new : q.new_fixed.passed_all;
   const vol = demoState.volume ?? d.monthly_requests_default;
   return `
   <p class="sl-kicker">${esc(d.pair.old)} → ${cheap ? 'cheaper models' : esc(d.pair.new)} · 4-step support agent · gpt-4 shuts down Oct 23</p>
@@ -54,13 +52,13 @@ function slideResults(data) {
   <h2 class="sl-title" tabindex="-1">${cheap ? 'Move every step to a cheaper model, with two one-line prompt fixes' : `Switch to <span class="dm-mono">${esc(rec.assignment.classify)}</span> on every step with a one-line prompt fix`}</h2>
   <div class="sl-kpis">
     <div class="sl-kpi">
-      <span class="sl-label">Test cases that got worse</span>
-      <strong>${before} → ${after}</strong>
-      <small>${cheap ? `before → after the fixes` : `before → after the fix, across ${c.dev_tickets + c.heldout_tickets} test cases`}</small>
+      <span class="sl-label">${cheap ? 'Compared with gpt-4' : 'Test cases that got worse'}</span>
+      <strong>${cheap ? `${m36.improved.length} better · ${m36.regressed.length} worse` : `${before} → ${after}`}</strong>
+      <small>${cheap ? `after the fixes, across ${m36.of} test cases` : `before → after the fix, across ${c.dev_tickets + c.heldout_tickets} test cases`}</small>
     </div>
     <div class="sl-kpi">
       <span class="sl-label">Accuracy</span>
-      <strong>${pct(q.old.passed_all)} → ${pct(passed)}</strong>
+      <strong>${pct(passedOld)} → ${pct(passedNew)}</strong>
       <small>replies passing every check</small>
     </div>
     <div class="sl-kpi sl-kpi-good">
@@ -114,8 +112,8 @@ function openCase(d, i) {
 }
 
 // ---- Live runs: call the real models on chosen test cases, on a screen of their own -------------------------
-const LIVE_SCOPES = [['fresh3', 'Newest (8)'], ['dev', 'Practice (24)'], ['holdout2', 'Holdout (12)'], ['hard', 'Hard (12)'], ['all', 'All 56']];
-const SCOPE_N = {fresh3: 8, dev: 24, holdout2: 12, hard: 12, all: 56};
+const LIVE_SCOPES = [['dev', 'Practice (24)'], ['hard', 'Hard (12)'], ['all', 'All 36']];
+const SCOPE_N = {dev: 24, hard: 12, all: 36};
 // "[category / action]" is the first line of every recorded and live output; compare it with the expected answer.
 function headMatch(output, expected) {
   const m = /^\[([^\]/]*?)\s*\/\s*([^\]]*?)\]/.exec(output || '');
@@ -337,17 +335,17 @@ function slideModels(data) {
         <small class="sl-host">${m.hosting === 'self-hosted' ? 'your own computer · open-source' : 'OpenAI API'}</small></th>
       ${STEPS.map(s => `<td class="dm-num${chosen[s] === m.model ? ' sl-pick' : ''}">${stepCell(m.per_step?.[s])}${chosen[s] === m.model ? ' <span aria-label="chosen for this step">✓</span>' : ''}</td>`).join('')}
       <td class="dm-num sl-total">${m.usd_per_1k != null ? usd(m.usd_per_1k) : `${Math.round(m.tokens_per_ticket || 0).toLocaleString('en-US')} tok`}</td>
-      <td class="dm-num">${m.role === 'today' ? '<span class="dm-of">baseline</span>' : `${worse(m.sets.dev)} · ${worse(m.sets.hard)} · ${worse(m.sets.holdout2)}`}</td>
+      <td class="dm-num">${m.role === 'today' ? '<span class="dm-of">baseline</span>' : `${worse(m.sets.dev)} · ${worse(m.sets.hard)}`}</td>
     </tr>`).join('');
   return `
   <p class="sl-kicker">Candidates</p>
   <h2 class="sl-title" tabindex="-1">Cost per step, and how each model did on its own</h2>
   <div class="dm-scroll"><table class="dm-table sl-table">
     <thead><tr><th scope="col">Model</th>${STEPS.map(s => `<th scope="col" class="dm-num">${s}</th>`).join('')}
-      <th scope="col" class="dm-num">Total per 1,000 test cases</th><th scope="col" class="dm-num">Got worse alone<br><small>practice · hard · holdout</small></th></tr></thead>
+      <th scope="col" class="dm-num">Total per 1,000 test cases</th><th scope="col" class="dm-num">Got worse alone<br><small>practice · hard</small></th></tr></thead>
     <tbody>${rows}</tbody>
   </table></div>
-  <p class="sl-foot">✓ = cheapest model that passed that step. ${d.sol_cost ? `gpt-5.6-sol is ${usd(d.sol_cost.table_no_fix)} here, without the fix. With the fix it's ${usd(d.sol_cost.same_cases_fixed)}: the fixed step uses fewer tokens.` : ''}</p>`;
+  <p class="sl-foot">✓ = cheapest model that passed that step. ${d.sol_cost ? `gpt-5.6-sol is ${usd(d.sol_cost.table_no_fix)} here, without the fix. With the fix it's ${usd(d.sol_cost.fixed)}: the fixed step uses fewer tokens.` : ''}</p>`;
 }
 
 // ---- Slide 3: cheapest safe choice + fixes -------------------------------------------------------------
@@ -358,18 +356,15 @@ function slideChoice(data) {
   const guilty = d.per_step.find(s => s.guilty), line = d.lines.results.find(x => x.repairs);
   const ladder = !p ? '' : `<ol class="sl-ladder">${STEPS.map(s => `<li><span class="dm-mono sl-step">${s}</span>${(p.ladder[s] || []).map(t =>
     `<span class="sl-chip ${t.passed ? 'ok' : 'no'}">${esc(t.model)} ${t.passed ? '✓' : `✗ ${t.regressed}`}</span>`).join('')}</li>`).join('')}</ol>`;
-  const fbResults = [`${data.candidates[0].summary.verdict_counts_after_fix?.REGRESSED} of ${d.confidence.dev_tickets + d.confidence.heldout_tickets} (practice + hard)`,
-    p?.sol_patch_holdout2 && `${p.sol_patch_holdout2.regressed} of ${p.sol_patch_holdout2.of} (holdout)`,
-    r && `${r.fresh3.sol_patch.regressed} of ${r.fresh3.sol_patch.of} (newest)`].filter(Boolean).join(', ');
+  const fbResults = `${data.candidates[0].summary.verdict_counts_after_fix?.REGRESSED} of ${d.confidence.dev_tickets + d.confidence.heldout_tickets}`;
   const main = !r ? '' : `
     <section class="sl-option${demoState.choice === 'cheap' ? ' sl-option-rec' : ''}" aria-labelledby="sl-a">
       <span class="dm-pill accepted">Recommended · cheapest</span>
       <h3 id="sl-a">${STEPS.map(s => `${s} → <span class="dm-mono">${esc(rec.assignment[s])}</span>`).join(', ')}</h3>
       <p class="sl-price">${usd(rec.usd_per_1k)} <small>per 1,000 test cases, API calls only</small></p>
-      <p><strong>First try:</strong> ${p.mix.holdout2.regressed.map(esc).join(', ')} got worse. The order ID was typed in lowercase ("a1005") and the classify step dropped it.</p>
-      <p><strong>Fixes (the mix was tested with both):</strong> the classify prompt, then the tone prompt written for sol.</p>
+      <p><strong>Fixes</strong> (tested together): the classify prompt keeps lowercase order IDs working, the tone prompt keeps the refund timeline.</p>
       ${rec.edits.map(e => diff(e.old, e.new)).join('')}
-      <p><strong>After the fixes:</strong> ${r.dev.regressed} of ${r.dev.of} practice and ${r.fresh3.mix.regressed} of ${r.fresh3.mix.of} newest test cases got worse. The newest set is small.</p>
+      <p><strong>After the fixes:</strong> ${d.mix_std.regressed.length} of ${d.mix_std.of} test cases got worse than gpt-4, ${d.mix_std.improved.length} got better.</p>
       <button class="button${demoState.choice === 'cheap' ? ' primary' : ''}" data-choice="cheap" aria-pressed="${demoState.choice === 'cheap'}">${demoState.choice === 'cheap' ? '✓ Selected' : 'Choose this option'}</button>
     </section>`;
   const safer = `
@@ -382,7 +377,7 @@ function slideChoice(data) {
         Removing line ${line ? line.line_index + 1 : '?'} alone fixes ${line ? `${line.repairs}/${line.of}` : '–'}.</p>
       <p><strong>Fix, tone prompt</strong> (written by ${esc(patch.fixer)} from the practice test cases only):</p>
       ${patch.edits.map(e => diff(e.old, e.new)).join('')}
-      <p><strong>Got worse after the fix:</strong> ${fbResults}, including test cases the fix never saw.</p>
+      <p><strong>Got worse after the fix:</strong> ${fbResults} test cases (24 practice + 12 hard).</p>
       <button class="button${demoState.choice === 'sol' ? ' primary' : ''}" data-choice="sol" aria-pressed="${demoState.choice === 'sol'}">${demoState.choice === 'sol' ? '✓ Selected' : 'Choose this option'}</button>
     </section>`;
   return `
@@ -409,8 +404,7 @@ function prChanges(data) {
 
 function slidePR(data) {
   const d = data.demo, rec = chosenRec(d), r = d.pool.retest, changes = prChanges(data), sol = demoState.choice === 'sol';
-  const sets = [r.dev, r.holdout2_seen, r.fresh3.mix];
-  const total = sets.reduce((n, x) => n + x.of, 0), worse = sets.reduce((n, x) => n + x.regressed, 0);
+  const total = d.mix_std.of, worse = d.mix_std.regressed.length;
   const status = id => demoState.decisions[id] || 'pending';
   const label = {pending: 'Waiting for review', accepted: 'Accepted', rejected: 'Rejected', edited: 'Edited: re-run needed'};
   const items = changes.map((ch, i) => {
@@ -446,7 +440,7 @@ function slidePR(data) {
   <ul class="dm-summary">
     <li><strong>Where:</strong> ${sol ? `the <span class="dm-mono">${esc(rec.edits[0].step)}</span> step` : `all 4 steps, and the ${[...new Set(rec.edits.map(e => e.step))].map(x => `<span class="dm-mono">${esc(x)}</span>`).join(' and ')} prompts`}.</li>
     <li><strong>What:</strong> ${sol ? `the model swap to ${esc(d.pair.new)}` : 'a cheaper model on each step'} and ${rec.edits.length} prompt line${rec.edits.length > 1 ? 's' : ''}.</li>
-    <li><strong>Proof:</strong> ${sol ? `test cases that got worse ${d.confidence.regressed_dev + d.confidence.regressed_heldout_before} → ${data.candidates[0].summary.verdict_counts_after_fix?.REGRESSED} of ${d.confidence.dev_tickets + d.confidence.heldout_tickets} (practice + hard), including ${d.patch.heldout_before.REGRESSED} → ${d.patch.heldout_after.REGRESSED} on the 12 hard test cases the fix never saw.` : `test cases that got worse ${d.mix_before.regressed.length} → ${worse}.`}</li>
+    <li><strong>Proof:</strong> ${sol ? `test cases that got worse ${d.confidence.regressed_dev + d.confidence.regressed_heldout_before} → ${data.candidates[0].summary.verdict_counts_after_fix?.REGRESSED} of ${d.confidence.dev_tickets + d.confidence.heldout_tickets} (practice + hard), including ${d.patch.heldout_before.REGRESSED} → ${d.patch.heldout_after.REGRESSED} on the 12 hard test cases the fix never saw.` : `test cases that got worse ${worse} of ${total} (24 practice + 12 hard), ${d.mix_std.improved.length} better.`}</li>
     <li><strong>Cost:</strong> ${usd(d.totals_usd_per_1k.all_old)} → ${usd(rec.usd_per_1k)} per 1,000 test cases.</li>
   </ul>
   ${items}

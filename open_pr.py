@@ -102,10 +102,7 @@ def body(data, target, applied, skipped, option="cheap"):
     if option == "sol":
         return body_sol(data, target, applied, skipped)
     rec, old = demo["recommended"], demo["pair"]["old"]
-    r = demo["pool"]["retest"]
-    total = r["dev"]["of"] + r["holdout2_seen"]["of"] + r["fresh3"]["mix"]["of"]
-    worse = r["dev"]["regressed"] + r["holdout2_seen"]["regressed"] + r["fresh3"]["mix"]["regressed"]
-    first_try = demo["pool"]["mix"]["holdout2"]["regressed"]
+    m, extra = demo["mix_std"], demo["extra_tests"]
     rows = []
     for ch in applied:
         if ch["kind"] == "model":
@@ -127,12 +124,12 @@ def body(data, target, applied, skipped, option="cheap"):
 
 ## What upshift found
 - Each step was tested alone against `{old}`; the cheapest model that passed it was kept.
-- The first combined run had {len(first_try)} test case get worse ({', '.join(first_try)}): the classify step dropped an order ID typed in lowercase ("a1005"). The classify line above fixes it.
-- The mix was tested with both prompt lines above: the classify fix and the tone line (it keeps the refund timeline in replies).
+- Two prompt lines go with the models and were tested with them: the classify line (the classify step dropped order IDs typed in lowercase) and the tone line (it keeps the refund timeline in replies).
 - {local} runs on a local open-source model, so it needs Ollama (or equivalent) where the agent runs.
 
 ## Evidence
-- Test cases that got worse: {len(demo['mix_before']['regressed'])} of {demo['mix_before']['of']} before the fixes ({', '.join(demo['mix_before']['regressed'])}), {worse} of {total} after (24 practice, 12 holdout, {r['fresh3']['mix']['of']} newest; 3 runs each). Only the newest were not used to write the fixes, and that set is small, so treat this as encouraging, not proof.
+- On the standard {m['of']} test cases ({m['sets']}, 3 runs each): {len(m['regressed'])} got worse than `{old}`, {len(m['improved'])} got better ({', '.join(m['improved']) or 'none'}).
+- **Known loss:** on 12 newer test cases run later, `{extra['newest']['regressed'][0]}` got worse: the decision is right (deny a return after 30 days) but the reply also says a refund will be processed. The tone line keeps refund details, and the local tone model added them to a denial. A narrower tone line fixed it but made refund replies lose the amount and timeline, so it is not included. Other extra sets: {len(extra['holdout']['regressed'])} of {extra['holdout']['of']} got worse (holdout), {len(extra['newer']['regressed'])} of {extra['newer']['of']} (newer).
 - Model cost per 1,000 test cases: ${demo['totals_usd_per_1k']['all_old']:.2f} → ${rec['usd_per_1k']:.2f} in API calls, plus about {round(rec['self_hosted_tokens_per_ticket'])} tokens per test case on your own computer (not priced).
 - Safer, costlier fallback: `gpt-5.6-sol` on every step plus a tone-line fix, ${demo['fallback']['usd_per_1k']:.2f} per 1,000 test cases.
 - The test cases are hand-written; the model outputs are real recorded runs.

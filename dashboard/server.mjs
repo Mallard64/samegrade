@@ -187,7 +187,7 @@ function createPR(payload) {
 // ---- Per-model detail for slide 2 -----------------------------------------------------------------
 // Everything a model did on the demo's test cases (recorded runs, no prompt changes), straight from results/*.jsonl:
 // the prompt each step used, and per test case every run's step inputs and outputs, hard checks and gold score.
-const MODEL_FILES = [['dev', ''], ['hard', '__hard'], ['holdout2', '__holdout2']];
+const MODEL_FILES = [['dev', ''], ['hard', '__hard']];
 async function modelCases(model) {
   const report = JSON.parse(await readFile(path.join(BACKEND, 'reports', 'demo', 'results.json'), 'utf8'));
   if (!(report.demo?.models || []).some(m => m.model === model)) return null;      // whitelist: no paths from the page

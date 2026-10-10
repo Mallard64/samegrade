@@ -16,12 +16,12 @@ Other tools rewrite the whole prompt and score the app end to end. upshift's cla
 
 ## What the demo shows
 
-The demo app is a 4-step support agent (`classify → decide → draft → tone`) with fake, deterministic tools, so any difference between runs comes from the models. 56 hand-written test cases in four sets: practice (24), hard (12), holdout (12) and newest (8), 3 runs each, all real recorded model outputs.
+The demo app is a 4-step support agent (`classify → decide → draft → tone`) with fake, deterministic tools, so any difference between runs comes from the models. Every number on the slides uses one standard set of 36 hand-written test cases (24 practice + 12 hard), 3 runs each, all real recorded model outputs.
 
 - **gpt-5.6-sol as a drop-in** broke the **tone** step: it deleted the "5–7 business days" refund timeline from replies. Putting gpt-4 back on `tone` alone repaired the broken test cases; no other step did. One tone line was the cause, and a one-line edit fixed it.
-- **Recommended: the cheapest model that passes each step.** `classify`, `decide` and `draft` on `gpt-5.6-luna`, `tone` on a local `llama3.1:8b`, plus two prompt lines (classify accepts lowercase order IDs; tone keeps the refund timeline; the mix was tested with both). **$39.32 → $0.31 per 1,000 test cases** in API calls, and 0 of 44 test cases got worse after the fixes (1 of 36 before: the order-ID case the classify fix was written from; only the 8 newest weren't used to write the fixes).
-- **Caveats:** the newest set is only 8 test cases, so this is encouraging, not proof. The local model's cost is shown as tokens (about 363 per test case), not dollars. Hardware and electricity aren't counted.
-- **Safer, costlier fallback:** `gpt-5.6-sol` on every step plus the tone fix, $7.84 per 1,000 test cases, 0 of 36 test cases (24 practice + 12 hard) worse after the fix, 0 of 12 on the holdout set and 0 of 8 on the newest.
+- **Recommended: the cheapest model that passes each step.** `classify`, `decide` and `draft` on `gpt-5.6-luna`, `tone` on a local `llama3.1:8b`, plus two prompt lines (classify accepts lowercase order IDs; tone keeps the refund timeline; the mix was tested with both). **$39.32 → $0.33 per 1,000 test cases** in API calls. Against gpt-4 on the 36: 0 worse, 1 better, and replies pass every check 94.4% of the time vs 97.2%.
+- **Known loss:** on 12 newer test cases run afterwards, t58 got worse. The decision is right (deny a return after 30 days) but the reply also says a refund will be processed: the tone line keeps refund details and the local tone model added them to a denial. A narrower line fixed t58 but made refund replies drop the amount and timeline, so it isn't included. The local model's cost is shown as tokens (about 378 per test case), not dollars.
+- **Safer, costlier fallback:** `gpt-5.6-sol` on every step plus the tone fix, $7.84 per 1,000 test cases, 7 worse before the fix and 0 after, on the same 36.
 - **Step-finder benchmark** (9 planted breaks, 39 localized test cases): 34/39 exact on held-out breaks; 5 partially right (2 missed a step, 3 named an extra one). After a narrowing fix, 37/39 exact. An LLM simply asked "which step failed?" also named a planted step 39/39, so our edge is the proof and multi-step causes, not guessing accuracy. See `reports/agent_bench/RESULTS.md`.
 
 Prices live in `config/prices.yml` (only values read from the pricing page on the date given; unknown prices show tokens instead of dollars).
@@ -108,5 +108,5 @@ Hard checks (`checks.py`) each enforce one prompt instruction, so a failure poin
 
 - Test cases are hand-written. Model behavior is real; the inputs are synthetic.
 - 3 runs per test case is enough to show the method, not a noise-robust measurement.
-- Small sets (8 test cases) can't establish a recommendation on their own.
+- One standard set of 36 test cases can't establish a recommendation on its own; the extra runs on newer test cases found a failure (t58) that the 36 didn't.
 - upshift investigates; an engineer decides. Nothing is published without an explicit click.
