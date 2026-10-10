@@ -10,6 +10,7 @@ Clones the repo into a temp folder, checks each prompt line still says what upsh
 upshift/<model>-<hash of the applied changes>, pushes and runs `gh pr create`. The branch name depends only on
 the applied changes, so asking again for the same changes returns the PR that is already open.
 Prints JSON: {"url", "branch", "existed", "applied", "skipped"} or {"error"}.
+Add "dry_run": true to the request to clone and apply the changes and print the diff, without committing or pushing.
 """
 import hashlib
 import json
@@ -127,10 +128,11 @@ def body(data, target, applied, skipped, option="cheap"):
 ## What upshift found
 - Each step was tested alone against `{old}`; the cheapest model that passed it was kept.
 - The first combined run had {len(first_try)} test case get worse ({', '.join(first_try)}): the classify step dropped an order ID typed in lowercase ("a1005"). The classify line above fixes it.
+- The mix was tested with both prompt lines above: the classify fix and the tone line (it keeps the refund timeline in replies).
 - {local} runs on a local open-source model, so it needs Ollama (or equivalent) where the agent runs.
 
 ## Evidence
-- Test cases that got worse after the fix: {worse} of {total} (24 practice, 12 held-out, {r['fresh3']['mix']['of']} fresh; 3 runs each). The fresh set is small, so treat this as encouraging, not proof.
+- Test cases that got worse after the fix: {worse} of {total} (24 practice, 12 holdout, {r['fresh3']['mix']['of']} newest; 3 runs each). The newest set is small, so treat this as encouraging, not proof.
 - Model cost per 1,000 test cases: ${demo['totals_usd_per_1k']['all_old']:.2f} → ${rec['usd_per_1k']:.2f} in API calls, plus about {round(rec['self_hosted_tokens_per_ticket'])} tokens per test case on your own computer (not priced).
 - Safer, costlier fallback: `gpt-5.6-sol` on every step plus a tone-line fix, ${demo['fallback']['usd_per_1k']:.2f} per 1,000 test cases.
 - The test cases are hand-written; the model outputs are real recorded runs.
@@ -168,7 +170,7 @@ def body_sol(data, target, applied, skipped):
 - Removing tone line {p['edits'][0]['line_index'] + 1} alone fixes them too; the prompt change above rewrites that line.
 
 ## Evidence
-- Test cases that got worse: {c['regressed_dev'] + c['regressed_heldout_before']} → {after} of {c['dev_tickets'] + c['heldout_tickets']} ({c['runs_per_ticket']} runs each), including {p['heldout_before']['REGRESSED']} → {p['heldout_after']['REGRESSED']} on {c['heldout_tickets']} test cases the fix never saw.
+- Test cases that got worse: {c['regressed_dev'] + c['regressed_heldout_before']} → {after} of {c['dev_tickets'] + c['heldout_tickets']} (24 practice + 12 hard; {c['runs_per_ticket']} runs each), including {p['heldout_before']['REGRESSED']} → {p['heldout_after']['REGRESSED']} on the {c['heldout_tickets']} hard test cases the fix never saw.
 - Replies passing every check: {demo['quality']['old']['passed_all']:.1%} before, {demo['quality']['new_fixed']['passed_all']:.1%} after.
 - Model cost per 1,000 test cases: ${t['all_old']:.2f} → ${demo['fallback']['usd_per_1k']:.2f}.
 - The test cases are hand-written; the model outputs are real recorded runs.
@@ -202,6 +204,11 @@ def main():
         sh("gh", "repo", "clone", repo, str(d), "--", "--depth", "1", "--branch", target["base"])
         sh("git", "checkout", "-b", branch, cwd=d)
         apply(d, target, applied)
+        if req.get("dry_run"):
+            # Everything up to the push: clone, apply, show what would be committed. Nothing leaves this machine.
+            sh("git", "add", "-A", cwd=d)
+            print(json.dumps({**out, "dry_run": True, "diff": sh("git", "diff", "--cached", cwd=d)}))
+            return
         sh("git", "add", "-A", cwd=d)
         sh("git", "commit", "-m", f"Move the support agent off {demo['pair']['old']} to {'cheaper models' if option == 'cheap' else demo['pair']['new']}", cwd=d)
         # upshift/* branches belong to upshift: overwrite one left behind by a closed PR.

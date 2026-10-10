@@ -242,3 +242,12 @@ main.unified-dashboard{max-width:1400px;padding:0 5vw 70px}.report-sections{marg
 .sl-key{display:inline-block;width:12px;height:12px;border-radius:4px;vertical-align:-1px;margin:0 4px 0 10px;cursor:default;padding:0}.sl-key:first-child{margin-left:0}
 .dm-case-in{margin:6px 0 8px;font-size:16px;line-height:1.55;color:#ece8e4}.dm-case-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px;margin-top:14px}.dm-case-col{border:1px solid #39342f;border-radius:14px;padding:12px 14px;background:#1b1a19}.dm-case-col.sel{border-color:#2b5544;background:#14201b}.dm-case-col h4{margin:0 0 6px;font-size:13px;letter-spacing:.3px;color:#c2a58e}.dm-case-out{margin:8px 0 0;white-space:pre-wrap;overflow-wrap:anywhere;font:13px/1.55 ui-monospace,Menlo,monospace;color:#ece8e4}
 dialog:has(.dm-case-cols){width:min(1100px,94vw)}
+
+/* Live run: the button, the separate screen, and its progress. */
+.lv-start{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin:14px 0 4px}.lv-start .dm-foot{margin:0;flex:1 1 260px}
+.sl-live{max-width:1100px;margin:0 auto}.lv-top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:8px 0 14px}
+.lv-bar{height:10px;border-radius:99px;background:#232326;overflow:hidden;margin:12px 0}.lv-bar i{display:block;height:100%;background:linear-gradient(90deg,#76d6b1,#aaa6ff);border-radius:99px;transition:width .35s ease}
+.sl-case.lv-pending{opacity:.4}.sl-case.lv-part{background:#1c1b2a;border-color:#4b4a7a;color:#aaa6ff}.sl-case.lv-ok{background:#14261f;border-color:#2b5544;color:#76d6b1}.sl-case.lv-bad{background:#2a1a17;border-color:#7a4a38;color:#eeb67b}
+.lv-feed{display:grid;gap:14px;margin-top:20px}.lv-row{border:1px solid #39342f;border-radius:16px;padding:14px 16px;background:#171716}.lv-row-head{display:flex;flex-wrap:wrap;align-items:center;gap:10px}.lv-row-head .dm-foot{margin:0 0 0 auto}
+.lv-chip{font-size:12.5px;font-weight:600;border-radius:99px;padding:3px 10px;border:1px solid #39342f}.lv-chip.ok,.lv-chip.better{color:#76d6b1;border-color:#2b5544;background:#14261f}.lv-chip.bad,.lv-chip.error{color:#eeb67b;border-color:#7a4a38;background:#2a1a17}.lv-chip.same{color:#d2d2d7}
+@media(prefers-reduced-motion:reduce){.lv-bar i{transition:none}}

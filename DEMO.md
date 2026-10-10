@@ -121,7 +121,7 @@ engineer. We investigate; you decide."
 | Per-step ladder: each step tried cheapest first until nothing got worse | `model_pool.py` (gpt-5.6-sol + fix runs every other step) |
 | Recommended: sol + tone fix. gpt-4 back at tone fixes 4/4; removing tone line 3 fixes 4/4 | `model_only.py`, 3 runs per experiment |
 | Cheapest option: luna + local Llama 3.1 8B, $0.31 per 1,000 in API calls. First failed t42 (lowercase ID), passed 8 new test cases after a one-line classify fix | `model_pool.py`, `mix_retest.py`. Small test; running Llama yourself isn't priced |
-| Step-finder accuracy 34/39 exact, 0 wrong | **Practice test with planted bugs** (`reports/agent_bench/RESULTS.md`), numbers from test cases it wasn't tuned on |
+| Step-finder accuracy 34/39 exact; 5 partially right (2 missed a step, 3 named an extra one) | **Practice test with planted bugs** (`reports/agent_bench/RESULTS.md`), numbers from test cases it wasn't tuned on |
 
 The reverse check on the tone step is 2/4, not 4/4: on t21 and t24 the new model's tone step only drops the timeline
 when the new model also wrote the draft. Say so if asked.

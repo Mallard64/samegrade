@@ -26,6 +26,9 @@ _lock = threading.Lock()
 _cache = None
 _spent = 0.0
 _local = threading.local()
+# live_run.py sets this: every call goes to the model, and nothing is read from or written to the cache, so recorded
+# runs (and reports built from them) stay exactly as they were. Spend is still counted in memory for the run's budget.
+NO_CACHE = bool(os.environ.get("LLM_NO_CACHE"))
 
 
 def set_run(run):
@@ -90,8 +93,8 @@ def call_llm(step, model, messages, params=None, api_base=None, completion=_comp
     key = call_key(model, params, messages, run)
     with _lock:
         hit = _load().get(key)
-        over = _spent >= SPEND_CAP_USD
-    if hit is not None:
+        over = _spent >= SPEND_CAP_USD and not NO_CACHE  # live runs have their own per-run budget (live_run.py)
+    if hit is not None and not NO_CACHE:
         return {**hit, "cached": True}
     if over:
         raise RuntimeError(f"spend cap reached: ${_spent:.2f} logged in {CACHE.name} >= ${SPEND_CAP_USD:.2f}")
@@ -105,6 +108,10 @@ def call_llm(step, model, messages, params=None, api_base=None, completion=_comp
            "system_fingerprint": getattr(resp, "system_fingerprint", None),
            "finish_reason": choice.finish_reason, "latency_s": round(time.perf_counter() - t0, 3)}
     usd = price(model, out["usage"])
+    if NO_CACHE:
+        with _lock:
+            _spent += usd or 0.0
+        return {**out, "cached": False}
     row = {"key": key, "step": step, "model": model, "run": run, "cost_usd": usd,
            "ts": datetime.now(timezone.utc).isoformat(), "response": out}
     with _lock:

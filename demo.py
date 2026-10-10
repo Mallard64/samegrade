@@ -136,17 +136,17 @@ def main():
             print(f"   {ORANGE}- {e['old']}{RESET}\n   {GREEN}+ {e['new']}{RESET}")
         print(f"   dev re-run, 24 test cases × 3: {p['dev_verdict_counts']['REGRESSED']} got worse")
 
-        say(5, f"Held-out: {c['heldout_tickets']} test cases the fixer never saw.", s)
+        say(5, f"Hard set: {c['heldout_tickets']} test cases the fixer never saw.", s)
         ticker(rows(files["fixed_ho"]), BUDGET["heldout"], s, "sol + fix")
         print(f"   → got worse: {ORANGE}{mo['heldout_before']['verdict_counts']['REGRESSED']}{RESET} before the fix, "
               f"{GREEN}{mo['heldout_after']['verdict_counts']['REGRESSED']}{RESET} after.")
         t = demo["totals_usd_per_1k"]
         rec, fb = demo["recommended"], demo["fallback"]
         mix = ", ".join(f"{st} → {m}" for st, m in rec["assignment"].items())
-        print(f"\n{BOLD}Result:{RESET} gpt-5.6-sol with the tone fix: 0 of 36 test cases worse, ${fb['usd_per_1k']:.2f} per 1,000 test cases (safer, costlier fallback).")
-        print(f"{BOLD}Recommended:{RESET} the cheapest model per step ({mix}) plus one classify line: "
+        print(f"\n{BOLD}Result:{RESET} gpt-5.6-sol with the tone fix: 0 of 36 test cases (practice + hard) worse, ${fb['usd_per_1k']:.2f} per 1,000 test cases (safer, costlier fallback).")
+        print(f"{BOLD}Recommended:{RESET} the cheapest model per step ({mix}) plus a classify line and the tone line: "
               f"${t['all_old']:.2f} → ${rec['usd_per_1k']:.2f} per 1,000 test cases ({rec['savings_vs_all_old_pct']:.0f}% lower, API calls only), "
-              f"0 of 44 test cases worse after the fix (the fresh set is small). Open the dashboard for savings, evidence and the PR.")
+              f"0 of 44 test cases (24 practice, 12 holdout, 8 newest) worse after the fix (the newest set is small). Open the dashboard for savings, evidence and the PR.")
         if server:
             print(f"{DIM}Dashboard stays up. Ctrl+C to stop.{RESET}")
             server.wait()

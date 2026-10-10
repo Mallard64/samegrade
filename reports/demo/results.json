@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "_note": "Real runs of the 4-step support agent (clean prompts, nothing planted). Test cases are hand-written (synthetic); model behavior is real. cost_per_1k_calls_usd = per 1k test case runs (4 calls).",
-  "run_id": "2026-10-10T21:47:35Z",
+  "run_id": "2026-10-10T22:00:51Z",
   "repo": {
     "name": "upshift support agent (demo)",
     "call_site": "support_agent.py: PROMPTS['tone']"
@@ -1582,7 +1582,7 @@
     "title": "Move the support agent to cheaper models; keep order IDs working in classify",
     "url": null,
     "branch": null,
-    "lines_changed": 1
+    "lines_changed": 2
   },
   "synthetic": false,
   "demo": {
@@ -1628,7 +1628,7 @@
         "passed_all": 0.9722,
         "gold": 1.0
       },
-      "note": "all runs, 24 dev + 12 held-out test cases x 3"
+      "note": "all runs, 24 practice + 12 hard test cases x 3"
     },
     "per_step": [
       {
@@ -1850,11 +1850,19 @@
           "step": "classify",
           "line_index": 3,
           "old": "Extract the order ID if the ticket gives one: the letter A followed by 4 digits, in uppercase (e.g. A1234). Use null if there is none.",
-          "new": "Extract the order ID if the ticket gives one: the letter A followed by 4 digits (e.g. A1234). Customers may type it in lowercase or with a #; return it in uppercase without the # (a1234 -> A1234). Use null if there is none."
+          "new": "Extract the order ID if the ticket gives one: the letter A followed by 4 digits (e.g. A1234). Customers may type it in lowercase or with a #; return it in uppercase without the # (a1234 -> A1234). Use null if there is none.",
+          "summary": "Keep lowercase order IDs working"
+        },
+        {
+          "step": "tone",
+          "line_index": 2,
+          "old": "It must not promise anything beyond the decision.",
+          "new": "It must not add promises beyond the decision; however, standard refund details already present in the draft, including return to the original payment method within 5-7 business days, are allowed and must be preserved.",
+          "summary": "Keep the refund timeline in the tone check"
         }
       ],
       "savings_vs_all_old_pct": 99.2,
-      "why": "cheapest models that passed each step, plus one classify line; 0 of 44 test cases got worse after the fix (24 practice, 12 held-out, 8 fresh). The fresh set is small."
+      "why": "cheapest models that passed each step, plus a classify line and the tone line; 0 of 44 test cases got worse after the fix (24 practice, 12 holdout, 8 newest). The newest set is small."
     },
     "mix": {
       "assignment": {
@@ -2017,6 +2025,12 @@
       },
       "wrong_step": {
         "n": 0,
+        "of": 39
+      },
+      "partial": {
+        "n": 5,
+        "missed": 2,
+        "extra": 3,
         "of": 39
       },
       "note": "9 planted prompt breaks, terra as old and sol as new; held-out numbers (before the narrowing fix)"
@@ -2772,6 +2786,11 @@
       },
       "self_hosted_note": "Open-source models ran on a laptop (Apple M4) through Ollama, in a compressed 4-bit version. There is no price list for running them yourself, so they show tokens, not dollars; hardware and electricity are not counted."
     },
+    "sol_cost": {
+      "table_no_fix": 8.76,
+      "same_cases_no_fix": 9.046,
+      "same_cases_fixed": 7.8432
+    },
     "fallback": {
       "config": "all_new",
       "assignment": {
@@ -2795,7 +2814,8 @@
           "step": "tone",
           "line_index": 2,
           "old": "It must not promise anything beyond the decision.",
-          "new": "It must not add promises beyond the decision; however, standard refund details already present in the draft, including return to the original payment method within 5-7 business days, are allowed and must be preserved."
+          "new": "It must not add promises beyond the decision; however, standard refund details already present in the draft, including return to the original payment method within 5-7 business days, are allowed and must be preserved.",
+          "summary": "Keep the refund timeline in the tone check"
         }
       ]
     },

@@ -10,19 +10,19 @@
 | **What** broke? | **Line-finder.** Remove or neutralize each prompt line on the new model and re-run. Lines are ranked by their measured effect, not by a guess. |
 | **Is it really broken?** | A test case only counts as worse when it fails beyond the old model's own run-to-run noise (3 runs each). |
 | **What's the fix?** | A minimal diff to the lines that caused it, not a rewrite of the prompt. Each change is accepted, edited or rejected on its own. |
-| **Does the fix hold?** | The full suite re-runs, including fresh test cases the fixer never saw. |
+| **Does the fix hold?** | The full suite re-runs, including test cases the fixer never saw. |
 
 Other tools rewrite the whole prompt and score the app end to end. upshift's claim is narrower: it proves which step and which lines broke, and changes only those.
 
 ## What the demo shows
 
-The demo app is a 4-step support agent (`classify → decide → draft → tone`) with fake, deterministic tools, so any difference between runs comes from the models. 56 hand-written test cases (24 practice, 12 hard, 12 + 8 fresh), 3 runs each, all real recorded model outputs.
+The demo app is a 4-step support agent (`classify → decide → draft → tone`) with fake, deterministic tools, so any difference between runs comes from the models. 56 hand-written test cases in four sets: practice (24), hard (12), holdout (12) and newest (8), 3 runs each, all real recorded model outputs.
 
 - **gpt-5.6-sol as a drop-in** broke the **tone** step: it deleted the "5–7 business days" refund timeline from replies. Putting gpt-4 back on `tone` alone repaired the broken test cases; no other step did. One tone line was the cause, and a one-line edit fixed it.
-- **Recommended: the cheapest model that passes each step.** `classify`, `decide` and `draft` on `gpt-5.6-luna`, `tone` on a local `llama3.1:8b`, plus one classify line (accept lowercase order IDs). **$39.32 → $0.31 per 1,000 test cases** in API calls, and 0 of 44 test cases got worse after the fix.
-- **Caveats:** the fresh set is only 8 test cases, so this is encouraging, not proof. The local model's cost is shown as tokens (about 363 per test case), not dollars. Hardware and electricity aren't counted.
-- **Safer, costlier fallback:** `gpt-5.6-sol` on every step plus the tone fix, $7.84 per 1,000 test cases, validated on held-out test cases.
-- **Step-finder benchmark** (9 planted breaks, 39 localized test cases): 0 wrong steps, 34/39 exact on held-out (37/39 after a narrowing fix). An LLM simply asked "which step failed?" also named a planted step 39/39, so our edge is the proof and multi-step causes, not guessing accuracy. See `reports/agent_bench/RESULTS.md`.
+- **Recommended: the cheapest model that passes each step.** `classify`, `decide` and `draft` on `gpt-5.6-luna`, `tone` on a local `llama3.1:8b`, plus two prompt lines (classify accepts lowercase order IDs; tone keeps the refund timeline; the mix was tested with both). **$39.32 → $0.31 per 1,000 test cases** in API calls, and 0 of 44 test cases got worse after the fix.
+- **Caveats:** the newest set is only 8 test cases, so this is encouraging, not proof. The local model's cost is shown as tokens (about 363 per test case), not dollars. Hardware and electricity aren't counted.
+- **Safer, costlier fallback:** `gpt-5.6-sol` on every step plus the tone fix, $7.84 per 1,000 test cases, 0 of 36 test cases (24 practice + 12 hard) worse after the fix, 0 of 12 on the holdout set and 0 of 8 on the newest.
+- **Step-finder benchmark** (9 planted breaks, 39 localized test cases): 34/39 exact on held-out breaks; 5 partially right (2 missed a step, 3 named an extra one). After a narrowing fix, 37/39 exact. An LLM simply asked "which step failed?" also named a planted step 39/39, so our edge is the proof and multi-step causes, not guessing accuracy. See `reports/agent_bench/RESULTS.md`.
 
 Prices live in `config/prices.yml` (only values read from the pricing page on the date given; unknown prices show tokens instead of dollars).
 
@@ -45,6 +45,7 @@ cp .env.example .env        # only needed for new model calls
 | `python demo.py --demo` | Offline narrated replay (about 2 minutes) plus the dashboard: step-finder → line-finder → fix → recommendation |
 | `python demo_e2e.py --break u3` | The same pipeline on one planted break |
 | `python migrate_agent.py --candidate gpt-5.6-sol --candidate-config '{}'` | Full agent migration report, gpt-4 → gpt-5.6-sol |
+| `python live_run.py --option cheap --sets fresh3` | **Live, paid**: real model calls (what the dashboard's Run live button starts) |
 | `python results_demo.py` | Rebuild `reports/demo/results.json` (the deck's data) from cached runs |
 | `python export_bench.py` | Dashboard reports for every planted break |
 | `python -m unittest discover tests` | Unit tests (no key, no network) |
@@ -55,9 +56,10 @@ New model calls need a key: `set -a; source .env; set +a` (plain `source` doesn'
 
 `dashboard/` is plain HTML, CSS and JavaScript with no build step.
 
-- **Demo deck (4 slides):** the result, every model tried, the cheapest safe choice with its fixes, and the pull request. Each change in the PR is accepted, edited or rejected separately, and **Create pull request** opens a real PR in the app's own repo (`config/target_repo.yml`) only after you've decided every change.
+- **Demo deck (4 slides):** the result, every model tried, the cheapest safe choice with its fixes, and the pull request. Each change in the PR is accepted, edited or rejected separately, and **Create pull request** opens a real PR in the app's own repo (`config/target_repo.yml`) only after you've decided every change. To check it without publishing, send `"dry_run": true` to `open_pr.py`: it clones the repo, applies the changes and prints the diff, and pushes nothing.
 - **Migration reports:** a model comparison, the step and line that broke, before/after evidence, and the proposed diff. Agent reports add a pipeline view where you click any test case to see each step's input, output and the step-swap experiments.
-- **Live and replay:** rows from `results/*.jsonl` appear as runs happen; "Replay a run" plays back a recorded one.
+- **Run live (costs money):** on slide 1, **Run live** calls the real models for the selected option on the test cases you choose (or one test case from its dialog), after showing a cost estimate. Results fill in on a separate screen as they arrive, next to gpt-4's recorded answers. It needs `OPENAI_API_KEY` in the server's environment (and Ollama for the cheap mix's tone step), stops at a $2 cap per run (`LIVE_MAX_USD`, at most $5), and writes a new `results/agent__live-*.jsonl` file without touching recorded runs.
+- **Replay a run** only plays back a saved results file at its recorded pace. It makes no model calls and works offline. The "Live · idle" label in the header just means the page is connected to the local server watching `results/`.
 
 ## Other things it can migrate
 
@@ -82,7 +84,7 @@ Hard checks (`checks.py`) each enforce one prompt instruction, so a failure poin
 2. **Score** with hard checks and gold labels (`checks.py`, `compare.py`).
 3. **Find the step** (`stepfinder.py`, `stepswap.py`): new model everywhere except step *k*; if it passes again, step *k* is causal. Pairs are tried when no single step explains it.
 4. **Find the lines** (`linefinder.py`, `ablation.py`): ablate each line of the guilty prompt on the new model and rank by measured effect.
-5. **Fix** only that component (an LLM proposes the edit), then re-run everything, including fresh held-out test cases.
+5. **Fix** only that component (an LLM proposes the edit), then re-run everything, including test cases the fixer never saw.
 6. **Choose models per step** (`assign.py`, `model_pool.py`, `mix_retest.py`): the cheapest model that passes each step, then check that the mix still passes end to end.
 7. **Write the PR** (`pr_report.py`, `open_pr.py`): where, what, proof, fix, with the old model's noise floor.
 
@@ -106,5 +108,5 @@ Hard checks (`checks.py`) each enforce one prompt instruction, so a failure poin
 
 - Test cases are hand-written. Model behavior is real; the inputs are synthetic.
 - 3 runs per test case is enough to show the method, not a noise-robust measurement.
-- Small fresh sets (8 test cases) can't establish a recommendation on their own.
+- Small sets (8 test cases) can't establish a recommendation on their own.
 - upshift investigates; an engineer decides. Nothing is published without an explicit click.

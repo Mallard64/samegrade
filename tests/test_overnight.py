@@ -131,6 +131,20 @@ class HashCache(unittest.TestCase):
                                usage={"prompt_tokens": 1000, "completion_tokens": 100, "total_tokens": 1100},
                                system_fingerprint=None)
 
+    def test_live_mode_calls_the_model_every_time_and_leaves_the_cache_alone(self):
+        msgs = [{"role": "user", "content": "hi"}]
+        llm.set_run(1)
+        llm.call_llm("decide", "gpt-5.6-terra", msgs, {}, completion=self.fake)    # recorded call, cached
+        before = llm.CACHE.read_text()
+        llm.NO_CACHE = True
+        try:
+            llm.SPEND_CAP_USD = 0.0                                               # the historic cap doesn't apply to live runs
+            b = llm.call_llm("decide", "gpt-5.6-terra", msgs, {}, completion=self.fake)
+        finally:
+            llm.NO_CACHE = False
+        self.assertEqual((self.calls, b["cached"], b["raw"]), (2, False, "answer 2"))
+        self.assertEqual(llm.CACHE.read_text(), before)
+
     def test_same_call_same_run_is_free(self):
         msgs = [{"role": "user", "content": "hi"}]
         llm.set_run(1)

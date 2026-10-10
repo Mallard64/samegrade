@@ -29,11 +29,11 @@ def app_repo(tmp, line=OLD):
 class Plan(unittest.TestCase):
     def test_only_accepted_or_edited_changes_are_applied(self):
         applied, skipped = O.plan([{"id": "model", "decision": "accepted"}, {"id": "line0", "decision": "rejected"}], DEMO)
-        self.assertEqual(([c["id"] for c in applied], [c["id"] for c in skipped]), (["model"], ["line0"]))
+        self.assertEqual(([c["id"] for c in applied], [c["id"] for c in skipped]), (["model"], ["line0", "line1"]))
 
     def test_undecided_changes_are_left_out(self):
         applied, skipped = O.plan([], DEMO)
-        self.assertEqual((applied, [c["decision"] for c in skipped]), ([], ["pending", "pending"]))
+        self.assertEqual((applied, [c["decision"] for c in skipped]), ([], ["pending", "pending", "pending"]))
 
     def test_edited_text_is_used(self):
         applied, _ = O.plan([{"id": "line0", "decision": "edited", "text": "  Keep refund timelines.  "}], DEMO)
@@ -68,6 +68,7 @@ class Apply(unittest.TestCase):
             # models that reject temperature lose it; the local model keeps temperature 0
             self.assertEqual(cfg.count("temperature"), len(DEMO["recommended"]["self_hosted_steps"]))
             self.assertEqual((d / "prompts" / "classify.txt").read_text().split("\n")[3], EDIT["new"])
+            self.assertEqual([e["step"] for e in DEMO["recommended"]["edits"]], ["classify", "tone"])  # the mix was tested with both
 
     def test_refuses_a_line_that_changed_since_testing(self):
         with tempfile.TemporaryDirectory() as t:

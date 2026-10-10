@@ -213,7 +213,7 @@ def main():
                            "rule": "regressed = most new-model runs fail a hard check the old model passes, or score "
                                    "below the old model's worst run"},
             "quality": {"old": quality(old_files), "new_as_is": quality(sol_files), "new_fixed": quality(sol_fixed),
-                        "note": "all runs, 24 dev + 12 held-out test cases x 3"},
+                        "note": "all runs, 24 practice + 12 hard test cases x 3"},
             "per_step": per_step,
             "totals_usd_per_1k": totals, "savings": asg["savings"], "recommended": asg["recommended"],
             "mix": {"assignment": asg["assignment"], "accepted": asg["accepted"], "dev": asg["mixed"]["dev"]["verdict_counts"],
@@ -227,6 +227,7 @@ def main():
             "benchmark": {"synthetic": True, "source": "reports/agent_bench/RESULTS.md",
                           "held_out_exact": {"n": 34, "of": 39}, "two_way_confirmed": {"n": 38, "of": 39},
                           "wrong_step": {"n": 0, "of": 39},
+                          "partial": {"n": 5, "missed": 2, "extra": 3, "of": 39},
                           "note": "9 planted prompt breaks, terra as old and sol as new; held-out numbers (before the narrowing fix)"},
             "prices": {m: {k: p.get(k) for k in ("input_per_1m", "output_per_1m", "source", "checked")}
                        for m, p in prices.items() if m in ("gpt-4", "gpt-5.6-sol", "gpt-5.6-terra")},
@@ -278,26 +279,35 @@ def main():
         mix = pool["mix"]["assignment"]
         api = retest["cost"]["api_usd_per_1k"]
         fix = retest["fix"]
+        # Slide 2 lists sol with no fix on 48 test cases; slides 1, 3, 4 use sol + the tone fix on the 36 practice + hard ones.
+        sol_model = next(m for m in data["demo"]["models"] if m["model"] == "gpt-5.6-sol")
+        data["demo"]["sol_cost"] = {"table_no_fix": sol_model["usd_per_1k"],
+                                    "same_cases_no_fix": total(usage_per_step(sol_files)),
+                                    "same_cases_fixed": totals["all_new"]}
         data["demo"]["fallback"] = {
             **data["demo"]["recommended"], "label": "gpt-5.6-sol on every step + the tone fix",
             "params": {st: {} for st in A.STEPS},
-            "edits": [{"step": patch["step"], "line_index": e["line_index"], "old": e["old"], "new": e["new"]}
-                      for e in patch["edits"]]}
+            "edits": [{"step": patch["step"], "line_index": e["line_index"], "old": e["old"], "new": e["new"],
+                       "summary": "Keep the refund timeline in the tone check"} for e in patch["edits"]]}
         data["demo"]["recommended"] = {
             "config": "cheap_mix", "assignment": mix,
             "params": {st: pool_params.get(m, {}) for st, m in mix.items()},
             "usd_per_1k": api, "api_only": True,
             "self_hosted_steps": pool["mix"]["self_hosted_steps"],
             "self_hosted_tokens_per_ticket": retest["cost"]["self_hosted_tokens_per_ticket"],
-            "edits": [{"step": fix["step"], "line_index": fix["line_index"], "old": fix["old"], "new": fix["new"]}],
+            # The tested mix ran with both fixes: the classify line and the tone line written for sol (mix_retest.py).
+            "edits": [{"step": fix["step"], "line_index": fix["line_index"], "old": fix["old"], "new": fix["new"],
+                       "summary": "Keep lowercase order IDs working"}] +
+                     [{"step": patch["step"], "line_index": e["line_index"], "old": e["old"], "new": e["new"],
+                       "summary": "Keep the refund timeline in the tone check"} for e in patch["edits"]],
             "savings_vs_all_old_pct": round((1 - api / old_cost) * 100, 1),
-            "why": "cheapest models that passed each step, plus one classify line; 0 of 44 test cases got worse after the fix "
-                   "(24 practice, 12 held-out, 8 fresh). The fresh set is small.",
+            "why": "cheapest models that passed each step, plus a classify line and the tone line; 0 of 44 test cases got worse after the fix "
+                   "(24 practice, 12 holdout, 8 newest). The newest set is small.",
         }
         for c in data["candidates"]:
             c["summary"]["recommended"] = False
         data["pr"]["title"] = "Move the support agent to cheaper models; keep order IDs working in classify"
-        data["pr"]["lines_changed"] = 1
+        data["pr"]["lines_changed"] = 2
 
         # Every test case, old vs new: gpt-4, sol as-is, sol + tone fix, cheap mix + classify fix (3 runs each).
         def cell(path, tid):
