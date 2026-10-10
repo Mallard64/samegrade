@@ -1,0 +1,30 @@
+{
+ "what": "cheapest mix (luna x3 + local llama tone, classify + tone fixes) on 12 new test cases never used to write the fixes (inputs/agent_fresh4.jsonl, committed before any run), 3 runs each, vs gpt-4",
+ "old_file": "agent__gpt-4__noplant__fresh4.jsonl",
+ "new_file": "agent__live-cheap-20261010T232824Z.jsonl",
+ "verdict_counts": {
+  "REGRESSED": 1,
+  "IMPROVED": 1,
+  "CHANGED": 0,
+  "SAME": 10
+ },
+ "regressed": [
+  "t58"
+ ],
+ "improved": [
+  "t67"
+ ],
+ "passed_all": {
+  "old": 1.0,
+  "new": 1.0
+ },
+ "gold": {
+  "old": 0.9583,
+  "new": 0.9861
+ },
+ "cost_usd": {
+  "gpt4_baseline": 1.353,
+  "mix_api": 0.012
+ },
+ "finding": "t58 (31 days since delivery, correctly denied): the mix's reply also says 'your refund will be processed within 5-7 business days'. The tone line that keeps refund details (written for sol) makes the local llama tone step add refund wording to a denial."
+}
