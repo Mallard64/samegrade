@@ -184,6 +184,33 @@ function createPR(payload) {
     child.stdin.end(JSON.stringify(payload));
   });
 }
+// ---- Per-model detail for slide 2 -----------------------------------------------------------------
+// Everything a model did on the demo's test cases (recorded runs, no prompt changes), straight from results/*.jsonl:
+// the prompt each step used, and per test case every run's step inputs and outputs, hard checks and gold score.
+const MODEL_FILES = [['dev', ''], ['hard', '__hard'], ['holdout2', '__holdout2']];
+async function modelCases(model) {
+  const report = JSON.parse(await readFile(path.join(BACKEND, 'reports', 'demo', 'results.json'), 'utf8'));
+  if (!(report.demo?.models || []).some(m => m.model === model)) return null;      // whitelist: no paths from the page
+  const label = model.replace(/\//g, '-').replace(/:/g, '-');
+  const prompts = {}, cases = {};
+  for (const [split, sfx] of MODEL_FILES) {
+    let text;
+    try { text = await readFile(path.join(BACKEND, 'results', `agent__${label}__noplant${sfx}.jsonl`), 'utf8'); } catch { continue; }
+    for (const line of text.split('\n')) {
+      let r; try { r = JSON.parse(line); } catch { continue; }
+      if (!r?.input_id) continue;
+      for (const st of r.steps || []) if (!prompts[st.step] && st.messages?.[0]) prompts[st.step] = st.messages[0].content;
+      (cases[r.input_id] ||= {split, runs: []}).runs.push({
+        run: r.run, error: r.error || null, passed: r.passed_all ?? null,
+        failed: Object.entries(r.checks || {}).filter(([, v]) => v === false).map(([k]) => k),
+        gold: r.gold_score || null, category: r.category ?? null, action: r.decision?.action ?? null, reply: r.final_reply ?? null,
+        steps: (r.steps || []).map(st => ({step: st.step, input: st.messages?.[1]?.content ?? null, output: st.raw ?? null}))});
+    }
+  }
+  for (const c of Object.values(cases)) c.runs.sort((a, b) => a.run - b.run);
+  return {model, prompts, cases};
+}
+
 // ---- Live runs (paid) -------------------------------------------------------------------------
 // "Run live" on the dashboard: live_run.py calls the real models for the chosen option and prints one JSON line per
 // finished (test case, run); each is kept here and streamed to the page as a `liverun` event. One run at a time,
@@ -308,6 +335,10 @@ http.createServer(async (req, res) => {
     stopReplay();
     await startReplay(pick.file, seconds);
     return sendJSON(res, 200, {ok: true, file: pick.file, rows: pick.rows});
+  }
+  if (url.pathname === '/api/model-cases') {
+    const out = await modelCases(url.searchParams.get('model') || '').catch(() => null);
+    return out ? sendJSON(res, 200, out) : sendJSON(res, 404, {error: 'unknown model'});
   }
   if (url.pathname === '/api/live-run' && req.method === 'GET') return sendJSON(res, 200, {run: publicLive(), max_usd: LIVE_MAX_USD});
   if (url.pathname === '/api/live-run/stop') {

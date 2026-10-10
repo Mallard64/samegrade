@@ -254,6 +254,72 @@ function bindLive(root, data) {
   } catch { /* no live feed without the server */ }
 }
 
+// ---- A model's detail: prompts, grading, and every test case it ran -------------------------------------------
+const CHECKS = {
+  'classify.json_only': 'Classify answers with only a JSON object', 'classify.valid_category': 'Category is one of the allowed categories',
+  'decide.json_only': 'Decide answers with only a JSON object', 'decide.valid_action': 'Action is one of the allowed actions',
+  'decide.amount_matches': 'Refund and cancel amounts match the order price',
+  'draft.mentions_order_id': 'The final reply names the order ID', 'draft.states_amount': 'Refund and cancel replies state the amount',
+  'draft.states_timeline': 'Refund and cancel replies state the 5–7 business days timeline', 'draft.word_limit': 'The reply is under 120 words',
+  'draft.no_placeholder': 'No [placeholder] text is left in the reply', 'tone.json_only': 'Tone answers with only a JSON object',
+  'tone.valid_verdict': 'Tone verdict is PASS or REVISED', 'tone.keeps_facts': 'The tone step keeps the order ID and amount',
+};
+const GOLD = {category: 'category', order_id: 'order ID', action: 'decision', reply_content: 'required reply content'};
+
+async function openModel(data, model) {
+  const d = data.demo, dialog = document.querySelector('#detail');
+  if (!dialog) return;
+  dialog.innerHTML = `<div class="detail-head"><div><p class="eyebrow">MODEL DETAIL</p><h2 id="detail-title" class="dm-mono">${esc(model)}</h2></div><button class="close" aria-label="Close details">×</button></div><div class="detail-body"><p class="dm-foot">Loading…</p></div>`;
+  dialog.querySelector('.close').onclick = () => dialog.close();
+  dialog.showModal();
+  let info;
+  try {
+    const r = await fetch('/api/model-cases?model=' + encodeURIComponent(model));
+    if (!r.ok) throw new Error();
+    info = await r.json();
+  } catch { dialog.querySelector('.detail-body').innerHTML = '<p class="dm-bad">Couldn\'t load this model\'s runs. Start the dashboard with npm start.</p>'; return; }
+  const meta = new Map(d.cases.map(c => [c.id, c]));
+  const rows = Object.entries(info.cases).map(([id, c]) => {
+    const m = meta.get(id) || {}, runs = c.runs, ok = runs.filter(r => r.passed).length;
+    const off = runs.some(r => m.expected && (r.category !== m.expected.category || r.action !== m.expected.action));
+    const gold = runs.reduce((n, r) => n + (r.gold?.score ?? 0), 0) / runs.length;
+    return {id, split: c.split, m, runs, ok, off, gold};
+  }).sort((a, b) => a.id.localeCompare(b.id, undefined, {numeric: true}));
+  const total = rows.reduce((n, r) => n + r.runs.length, 0), okRuns = rows.reduce((n, r) => n + r.ok, 0);
+  const goldAvg = rows.reduce((n, r) => n + r.gold * r.runs.length, 0) / (total || 1);
+  const stepModels = d.models.find(x => x.model === model);
+  let filter = 'all';
+  const pass = r => r.ok === r.runs.length;
+  const caseHTML = r => `<details class="dm-mcase"><summary><strong class="dm-mono">${esc(r.id)}</strong> <span class="dm-foot">${esc(SPLIT[r.split] || r.split)}</span>
+      <span class="lv-chip ${pass(r) ? 'ok' : 'bad'}">${r.ok}/${r.runs.length} runs pass</span>${r.off ? '<span class="lv-chip same">differs from expected</span>' : ''}
+      <span class="dm-mcase-text">${esc(r.m.text || '')}</span></summary>
+    <div class="dm-mcase-body">
+      ${r.m.expected ? `<p class="dm-foot">Expected: ${esc(Object.entries(r.m.expected).map(([k, v]) => `${k} ${v ?? 'none'}`).join(' · '))}${r.m.note ? ` · ${esc(r.m.note)}` : ''}</p>` : ''}
+      ${r.runs.map(u => {
+        const wrong = Object.entries(u.gold || {}).filter(([k, v]) => k !== 'score' && v === false).map(([k]) => GOLD[k] || k);
+        return `<section class="dm-run"><p class="dm-foot"><strong>Run ${u.run}</strong> · <span class="${u.passed ? 'dm-good' : 'dm-bad'}">${u.error ? 'error' : u.passed ? 'every check passed' : 'failed: ' + esc(u.failed.join(', '))}</span>
+          · answer: ${esc(u.category ?? '–')} / ${esc(u.action ?? '–')} · score ${u.gold ? u.gold.score.toFixed(2) : '–'}${wrong.length ? ` (wrong: ${esc(wrong.join(', '))})` : ''}</p>
+          ${u.error ? `<p class="dm-bad">${esc(u.error)}</p>` : `<pre class="dm-case-out">${esc(u.reply ?? '(no reply)')}</pre>`}
+          <details class="dm-steps"><summary>Step by step</summary>${u.steps.map(st => `<h5>${esc(st.step)}</h5><p class="dm-foot">Input</p><pre class="dm-case-out">${esc(st.input ?? '')}</pre><p class="dm-foot">Output</p><pre class="dm-case-out">${esc(st.output ?? '')}</pre>`).join('')}</details></section>`;
+      }).join('')}
+    </div></details>`;
+  const draw = () => {
+    const shown = rows.filter(r => filter === 'all' || (filter === 'fail' ? !pass(r) : r.off));
+    const chip = (k, n, t) => `<button class="sl-choice" data-f="${k}" aria-pressed="${filter === k}">${t} <small>${n}</small></button>`;
+    dialog.querySelector('.detail-body').innerHTML = `
+      <p>${esc(stepModels?.hosting === 'self-hosted' ? 'Runs on your own computer' : 'OpenAI API')} · no prompt changes · 3 runs per test case against gpt-4's expected answers.
+        <strong>${okRuns} of ${total}</strong> runs passed every check · average score <strong>${goldAvg.toFixed(2)}</strong> · ${rows.length} test cases</p>
+      <details class="dm-box"><summary>Prompts this model was given</summary>${STEPS.map(st => info.prompts[st] ? `<h5>${st}</h5><pre class="dm-case-out">${esc(info.prompts[st])}</pre>` : '').join('')}</details>
+      <details class="dm-box"><summary>How a run is graded</summary>
+        <p class="dm-foot">A run passes only if every hard check passes:</p><ul class="dm-checks">${Object.entries(CHECKS).map(([k, v]) => `<li><span class="dm-mono">${esc(k)}</span> ${esc(v)}</li>`).join('')}</ul>
+        <p class="dm-foot">The score is separate: category, order ID, decision and required reply content are a quarter each. Passing the checks doesn't mean the decision was right.</p></details>
+      <div class="sl-choose" role="group" aria-label="Filter">${chip('all', rows.length, 'All')}${chip('fail', rows.filter(r => !pass(r)).length, 'Failed a check')}${chip('off', rows.filter(r => r.off).length, 'Differs from expected')}</div>
+      <div class="dm-mcases">${shown.map(caseHTML).join('') || '<p class="dm-foot">None.</p>'}</div>`;
+    dialog.querySelectorAll('[data-f]').forEach(b => b.onclick = () => { filter = b.dataset.f; draw(); });
+  };
+  draw();
+}
+
 // ---- Slide 2: every model ----------------------------------------------------------------------------
 const stepCell = v => !v ? '–' : v.usd_per_1k != null ? usd(v.usd_per_1k) : `${v.tokens.toLocaleString('en-US')} tok`;
 const worse = v => v ? `<span class="${v.regressed ? 'dm-bad' : 'dm-good'}">${v.regressed}</span><span class="dm-of">/${v.of}</span>` : '–';
@@ -267,7 +333,7 @@ function slideModels(data) {
   const rank = m => m.role === 'today' ? -2 : m.usd_per_1k ?? 1e9;
   const rows = [...(d.models || [])].sort((a, b) => rank(a) - rank(b)).map(m => `
     <tr${m.role === 'today' ? ' class="dm-today"' : ''}>
-      <th scope="row"><span class="dm-mono">${esc(m.model)}</span>${m.role === 'today' ? ' <span class="dm-pill">today</span>' : ''}
+      <th scope="row"><button class="sl-model-link dm-mono" data-model-detail="${esc(m.model)}" title="See every test case this model ran">${esc(m.model)}</button>${m.role === 'today' ? ' <span class="dm-pill">today</span>' : ''}
         <small class="sl-host">${m.hosting === 'self-hosted' ? 'your own computer · open-source' : 'OpenAI API'}</small></th>
       ${STEPS.map(s => `<td class="dm-num${chosen[s] === m.model ? ' sl-pick' : ''}">${stepCell(m.per_step?.[s])}${chosen[s] === m.model ? ' <span aria-label="chosen for this step">✓</span>' : ''}</td>`).join('')}
       <td class="dm-num sl-total">${m.usd_per_1k != null ? usd(m.usd_per_1k) : `${Math.round(m.tokens_per_ticket || 0).toLocaleString('en-US')} tok`}</td>
@@ -438,6 +504,7 @@ export function bindDemo(root, data) {
     redraw();
   });
   panel.querySelectorAll('[data-case]').forEach(b => b.onclick = () => openCase(data.demo, Number(b.dataset.case)));
+  panel.querySelectorAll('[data-model-detail]').forEach(b => b.onclick = () => openModel(data, b.dataset.modelDetail));
   panel.querySelectorAll('[data-case-live]').forEach(b => b.onclick = () => { const i = data.demo.cases.findIndex(c => c.id === b.dataset.caseLive); if (i >= 0) openCase(data.demo, i); });
   bindLive(root, data);
   window.__upshiftLive = id => openLiveConfirm(data, id);
