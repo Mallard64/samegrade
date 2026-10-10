@@ -32,9 +32,9 @@ def score_rows(rep, fixed):
     cost = lambda s: f"${s['cost_per_1k_calls_usd']:.2f}" if s and s["cost_per_1k_calls_usd"] is not None else "n/a"
     return [("Passed all hard checks", f"{b['passed_all']:.0%}", f"{c['passed_all']:.0%}", f"{f['passed_all']:.0%}" if f else "–"),
             ("Gold score", f"{b['accuracy']:.2f}", f"{c['accuracy']:.2f}", f"{f['accuracy']:.2f}" if f else "–"),
-            ("Tickets regressed vs old", "–", rep["verdict_counts"]["REGRESSED"],
+            ("Test cases regressed vs old", "–", rep["verdict_counts"]["REGRESSED"],
              fixed["verdict_counts"]["REGRESSED"] if fixed else "–"),
-            ("Cost per 1k tickets", cost(b), cost(c), cost(f))]
+            ("Cost per 1k test cases", cost(b), cost(c), cost(f))]
 
 
 def main():
@@ -42,7 +42,7 @@ def main():
     ap.add_argument("--break", dest="brk", default="u3")
     ap.add_argument("--model", default="gpt-5.6-terra")
     ap.add_argument("--runs", type=int, default=1)
-    ap.add_argument("--max-tickets", type=int, default=3, help="tickets to localize and ablate on")
+    ap.add_argument("--max-tickets", type=int, default=3, help="test cases to localize and ablate on")
     ap.add_argument("--workers", type=int, default=6)
     ap.add_argument("--tag", help="fresh run: new cache files and reports/demo_e2e_<break>_live (dashboard Run button)")
     args = ap.parse_args()
@@ -63,7 +63,7 @@ def main():
     rep = build_report(base_path, cand_path)
     regressed = [it["input_id"] for it in rep["items"] if it["verdict"] == "REGRESSED"]
     (out / "compare_candidate.json").write_text(json.dumps(rep, indent=2, default=list))
-    say(1, f"Ran all {rep['inputs_compared']} tickets through the new pipeline. {len(regressed)} now end differently "
+    say(1, f"Ran all {rep['inputs_compared']} test cases through the new pipeline. {len(regressed)} now end differently "
            f"from the old one: {', '.join(regressed) or 'none'}.")
 
     # 2. Step-finder on a sample of regressed tickets.
@@ -74,7 +74,7 @@ def main():
     found = sorted({s for t in loc["tickets"] for s in t["causal_steps"]}, key=A.STEPS.index)
     proven = sum(t["status"] == "confirmed" for t in loc["tickets"])
     say(2, f"Which step? Swapped each of the 4 steps back to the old version, one at a time, on {len(loc['tickets'])} "
-           f"broken tickets. Only {' + '.join(found) or 'no single step'} fixes them, and putting just that step on the "
+           f"broken test cases. Only {' + '.join(found) or 'no single step'} fixes them, and putting just that step on the "
            f"new version breaks them again ({proven}/{len(loc['tickets'])} proven both ways).")
     steps = sorted({s for t in loc["tickets"] if t["status"] == "confirmed" for s in t["causal_steps"]},
                    key=A.STEPS.index)
@@ -128,7 +128,7 @@ def main():
                                        "newly_regressed": [x for x in reg if x not in regressed],
                                        "passes": not reg, "report_file": f"compare_fix{n}.json"},
                       "decision": "pending", "decided_at": None, "_report": frep})
-        say(4, f"Fix: delete that line, then re-run all {frep['inputs_compared']} tickets. Regressions: "
+        say(4, f"Fix: delete that line, then re-run all {frep['inputs_compared']} test cases. Regressions: "
                f"{len(regressed)} -> {frep['verdict_counts']['REGRESSED']}.")
 
     # 5. PR.
@@ -163,7 +163,7 @@ def main():
          "old_model": f"{args.model} (clean)", "new_model": new["label"], "n_inputs": rep["inputs_compared"],
          "model_change": [], "cli": f"python demo_e2e.py --break {args.brk}",
          "steps": {"names": A.STEPS, "summary": summary,
-                   "method": f"For {n} regressed tickets, each step was swapped back to the old side one at a time "
+                   "method": f"For {n} regressed test cases, each step was swapped back to the old side one at a time "
                              f"({args.runs} run each, earlier steps replayed); a causal step is then checked the "
                              "other way round (only that step on the new side)."},
          "causes": causes, "evidence": {"table": score_rows(rep, shown),
@@ -172,8 +172,8 @@ def main():
          "fixes": [{k: v for k, v in f.items() if k != "_report"} for f in fixes], "other_differences": [],
          "lines": [{"step": st, "line_index": i, "text": v["line"], "proven": any(st == c[0] and i == c[1]
                     for c in confirmed_lines), "repaired": v["repaired"]} for (st, i), v in sorted(line_results.items())],
-         "limits": [f"{args.runs} run per configuration and {n} tickets localized: enough to show the method, not a "
-                    "noise-robust measurement.", "Planted break; 24 synthetic tickets."]}
+         "limits": [f"{args.runs} run per configuration and {n} test cases localized: enough to show the method, not a "
+                    "noise-robust measurement.", "Planted break; 24 synthetic test cases."]}
     (out / "PR.md").write_text(pr_report.render(m))
     diff = []
     for f in fixes:

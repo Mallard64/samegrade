@@ -1,9 +1,9 @@
 """Human-readable views of the support agent's pipeline, shared by the PR text, the dashboard export
-and the demo script: what each step does, what it said for a ticket, and the step-swap experiments
-as a grid (which model ran each step, and whether the ticket came out right)."""
+and the demo script: what each step does, what it said for a test case, and the step-swap experiments
+as a grid (which model ran each step, and whether the test case came out right)."""
 
 STEP_INFO = {
-    "classify": "Reads the ticket; picks a category and the order ID",
+    "classify": "Reads the test case; picks a category and the order ID",
     "decide": "Looks up the order and policy; picks the action",
     "draft": "Writes the reply to the customer",
     "tone": "Checks the reply's tone; may rewrite it",
@@ -41,8 +41,8 @@ def first_divergence(old, new):
 
 
 def experiments(tk, baseline_output, candidate_output):
-    """The step-finder's experiments for one ticket as rows: {label, models: {step: old|new}, output, ok}.
-    `ok` = the ticket came out like the old pipeline (not REGRESSED)."""
+    """The step-finder's experiments for one test case as rows: {label, models: {step: old|new}, output, ok}.
+    `ok` = the test case came out like the old pipeline (not REGRESSED)."""
     rows = [{"label": "Old pipeline", "models": {s: "old" for s in STEPS}, "output": baseline_output, "ok": True,
              "kind": "reference"},
             {"label": "New pipeline", "models": {s: "new" for s in STEPS}, "output": candidate_output, "ok": False,
@@ -81,7 +81,7 @@ def readable(pattern):
 
 
 def expected(step, ticket):
-    """What a step should produce for this ticket, from its gold labels."""
+    """What a step should produce for this test case, from its gold labels."""
     g = ticket["gold"]
     if step == "classify":
         return f"category: {g['category']} · order {g['order_id'] or 'none'}"

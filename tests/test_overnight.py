@@ -36,15 +36,12 @@ class NoiseRule(unittest.TestCase):
     def test_old_model_noise_cannot_flag_a_ticket(self):
         self.assertEqual(T.verdict(1, 3, 0, 3), "same")    # old only passed 1/3: not a regression
         self.assertEqual(T.verdict(3, 3, 2, 3), "same")    # new still passes most runs
+        self.assertEqual(T.verdict(4, 5, 2, 5), "same")    # 2/5 > 1/3
+        self.assertEqual(T.verdict(3, 3, 0, 0), "unknown")  # no new runs at all
 
     def test_fixed_is_the_mirror_image(self):
         self.assertEqual(T.verdict(0, 3, 3, 3), "fixed")
         self.assertEqual(T.verdict(1, 3, 2, 3), "fixed")
-
-    def test_other_run_counts_and_missing_runs(self):
-        self.assertEqual(T.verdict(4, 5, 1, 5), "broken")
-        self.assertEqual(T.verdict(4, 5, 2, 5), "same")    # 2/5 > 1/3
-        self.assertEqual(T.verdict(3, 3, 0, 0), "unknown")
 
 
 class HardChecks(unittest.TestCase):

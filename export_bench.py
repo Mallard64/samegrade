@@ -1,8 +1,8 @@
 """Export every tested planted break (agent_bench.py runs) as a Upshift dashboard report, so the
 dashboard shows whatever has been tested, not a hand-picked few.
 
-Each break becomes reports/bench_<set>_<id>/dashboard.json: all 24 tickets old vs new, and for the
-localized tickets the step-swap experiments. Rebuilt from cached runs only: the API key is removed
+Each break becomes reports/bench_<set>_<id>/dashboard.json: all 24 test cases old vs new, and for the
+localized test cases the step-swap experiments. Rebuilt from cached runs only: the API key is removed
 from this process, so a missing cache entry stops with an error instead of making a call.
 
   python export_bench.py

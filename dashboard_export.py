@@ -44,9 +44,9 @@ def proposed_diff(m):
 
 
 def pipeline_section(m, cand_rep, fix_reports, results=HERE / "results"):
-    """What the dashboard's pipeline view draws, for every ticket that was tested: its verdict on the new
+    """What the dashboard's pipeline view draws, for every test case that was tested: its verdict on the new
     pipeline (and with the first fix), per-step traces old / new / fixed with hover detail (prompt,
-    input, output, expected answer), and for broken tickets the step-swap experiments. Plus the
+    input, output, expected answer), and for broken test cases the step-swap experiments. Plus the
     prompt lines tested and the fix tally. Prompts are stored once in `prompts`, keyed by hash."""
     from compare import load
     from pipeline_view import STEP_INFO, STEPS, cell, expected, first_divergence, trace

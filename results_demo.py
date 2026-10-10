@@ -136,7 +136,7 @@ def main():
          "fixed_title": "Fixed: the tone check keeps the refund timeline",
          "reason": ("gpt-5.6-sol's tone step reads \"5-7 business days\" as a promise beyond the decision and rewrites "
                     "the reply without it. gpt-4 passes the same draft unchanged. Swapping only the tone step back to "
-                    f"gpt-4 repairs {sf['per_step'][step]['repair']}/{sf['per_step'][step]['of']} dev tickets; removing "
+                    f"gpt-4 repairs {sf['per_step'][step]['repair']}/{sf['per_step'][step]['of']} dev test cases; removing "
                     f"tone line {li + 1} alone repairs {line_repairs}/{sf['per_step'][step]['of']}."),
          "check": "hard_check: draft.states_timeline",
          "fix": {"old_line": patch["edits"][0]["old"], "new_line": patch["edits"][0]["new"], "status": "verified",
@@ -185,8 +185,8 @@ def main():
     assert "| Exactly the planted step(s) | 34 |" in bench and "| 38 | 39 |" in bench, "benchmark numbers changed"
     data = {
         "schema_version": 1,
-        "_note": "Real runs of the 4-step support agent (clean prompts, nothing planted). Tickets are hand-written "
-                 "(synthetic); model behavior is real. cost_per_1k_calls_usd = per 1k ticket runs (4 calls).",
+        "_note": "Real runs of the 4-step support agent (clean prompts, nothing planted). Test cases are hand-written "
+                 "(synthetic); model behavior is real. cost_per_1k_calls_usd = per 1k test case runs (4 calls).",
         "run_id": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "repo": {"name": "upshift support agent (demo)", "call_site": f"support_agent.py: PROMPTS['{step}']"},
         "baseline": {"model": OLD, "provider": "OpenAI", "retires_on": "2026-10-23", "runs_per_input": 3,
@@ -202,7 +202,7 @@ def main():
         "synthetic": False,
         "demo": {
             "synthetic": False,
-            "what_is_synthetic": ["the 36 tickets and their expected outcomes are hand-written",
+            "what_is_synthetic": ["the 36 test cases and their expected outcomes are hand-written",
                                   "the step-finder benchmark (planted prompt breaks)"],
             "pair": mo["pair"],
             "confidence": {"runs_per_ticket": 3, "dev_tickets": len(dev), "heldout_tickets": len(hard),
@@ -213,7 +213,7 @@ def main():
                            "rule": "regressed = most new-model runs fail a hard check the old model passes, or score "
                                    "below the old model's worst run"},
             "quality": {"old": quality(old_files), "new_as_is": quality(sol_files), "new_fixed": quality(sol_fixed),
-                        "note": "all runs, 24 dev + 12 held-out tickets x 3"},
+                        "note": "all runs, 24 dev + 12 held-out test cases x 3"},
             "per_step": per_step,
             "totals_usd_per_1k": totals, "savings": asg["savings"], "recommended": asg["recommended"],
             "mix": {"assignment": asg["assignment"], "accepted": asg["accepted"], "dev": asg["mixed"]["dev"]["verdict_counts"],
@@ -252,7 +252,7 @@ def main():
         data["demo"]["pool"] = {
             "synthetic": False, "base": pool["base"],
             "rule": "How each step was tested: gpt-5.6-sol with the fix runs every other step, and the cheaper model runs "
-                    "this one. It passes if none of the 24 practice tickets get worse than gpt-4 (3 runs each). Models on your "
+                    "this one. It passes if none of the 24 practice test cases get worse than gpt-4 (3 runs each). Models on your "
                     "own computer are tried first, then paid models from cheapest up.",
             "ladder": {s: [{"model": t["model"], "passed": t["passed"], "regressed": t["verdict_counts"]["REGRESSED"],
                             "errors": t["errors"]} for t in v["tried"]] for s, v in pool["ladder"].items()},
@@ -271,6 +271,29 @@ def main():
                                 "version. There is no price list for running them yourself, so they show tokens, not "
                                 "dollars; hardware and electricity are not counted.",
         }
+    retest = data["demo"].get("pool", {}).get("retest") if pool_path.exists() else None
+    if retest:
+        # The cheap mix is the main recommendation; sol + the tone fix stays as the safer, costlier fallback.
+        pool_params = {m["model"]: m["params"] for m in pool["pool"]}
+        mix = pool["mix"]["assignment"]
+        api = retest["cost"]["api_usd_per_1k"]
+        fix = retest["fix"]
+        data["demo"]["fallback"] = {**data["demo"]["recommended"], "label": "gpt-5.6-sol on every step + the tone fix"}
+        data["demo"]["recommended"] = {
+            "config": "cheap_mix", "assignment": mix,
+            "params": {st: pool_params.get(m, {}) for st, m in mix.items()},
+            "usd_per_1k": api, "api_only": True,
+            "self_hosted_steps": pool["mix"]["self_hosted_steps"],
+            "self_hosted_tokens_per_ticket": retest["cost"]["self_hosted_tokens_per_ticket"],
+            "edits": [{"step": fix["step"], "line_index": fix["line_index"], "old": fix["old"], "new": fix["new"]}],
+            "savings_vs_all_old_pct": round((1 - api / old_cost) * 100, 1),
+            "why": "cheapest models that passed each step, plus one classify line; 0 of 44 test cases got worse after the fix "
+                   "(24 practice, 12 held-out, 8 fresh). The fresh set is small.",
+        }
+        for c in data["candidates"]:
+            c["summary"]["recommended"] = False
+        data["pr"]["title"] = "Move the support agent to cheaper models; keep order IDs working in classify"
+        data["pr"]["lines_changed"] = 1
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps(data, indent=2, default=str) + "\n")
     s = sol["summary"]

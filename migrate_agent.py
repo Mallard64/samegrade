@@ -7,7 +7,7 @@
 
 Pipeline (every stage cached; a refresh with nothing new makes no API calls):
   compare (compare.py) -> step-finder (stepfinder.py) -> line-finder (linefinder.py)
-  -> one proposed fix per proven line: remove it -> full re-run of all tickets on the candidate
+  -> one proposed fix per proven line: remove it -> full re-run of all test cases on the candidate
   with the fix -> PR.md + prompts.diff + migration.json in reports/migration_agent/.
 
 Edit file (JSON), either form:
@@ -71,7 +71,7 @@ def verification(rep, regressed_before, runs, report_file):
 def bench_note():
     """One sentence on how reliable the step-finder is, from the planted-break benchmark (if run).
     Quotes the HELD-OUT column of RESULTS.md: results.json only keeps the numbers after the narrowing fix,
-    which was designed on the same tickets."""
+    which was designed on the same test cases."""
     f, md = HERE / "reports" / "agent_bench" / "results.json", HERE / "reports" / "agent_bench" / "RESULTS.md"
     if not f.exists() or not md.exists():
         return ""
@@ -82,7 +82,7 @@ def bench_note():
     exact, both, wrong = row("Exactly the planted step(s)"), row("Confirmed both ways"), row("Wrong step")
     if not (exact and both and wrong):
         return ""
-    return (f" How reliable this is (synthetic benchmark, {r['breaks']} planted breaks, {n} tickets, held-out): the "
+    return (f" How reliable this is (synthetic benchmark, {r['breaks']} planted breaks, {n} test cases, held-out): the "
             f"step-finder named exactly the planted step(s) on {exact.group(1)}/{n}, confirmed both ways on "
             f"{both.group(1)}/{n}, and named a wrong step on {wrong.group(1)} (`reports/agent_bench/RESULTS.md`).")
 
@@ -97,13 +97,13 @@ def score_rows(rep, fixed):
         ("Passed all hard checks", f"{b['passed_all']:.0%}", f"{c['passed_all']:.0%}", fx(lambda s: f"{s['passed_all']:.0%}")),
         ("Gold score (category, order ID, action, reply content)", f"{b['accuracy']:.2f}", f"{c['accuracy']:.2f}",
          fx(lambda s: f"{s['accuracy']:.2f}")),
-        ("Tickets regressed vs baseline", "–", rep["verdict_counts"]["REGRESSED"],
+        ("Test cases regressed vs baseline", "–", rep["verdict_counts"]["REGRESSED"],
          fixed["verdict_counts"]["REGRESSED"] if fixed else "–"),
-        ("Tickets whose decision varies between runs", b["unstable_inputs"], c["unstable_inputs"],
+        ("Test cases whose decision varies between runs", b["unstable_inputs"], c["unstable_inputs"],
          fx(lambda s: s["unstable_inputs"])),
         ("Pipeline latency p50 (4 steps)", f"{b['latency_p50_s']:.2f}s", f"{c['latency_p50_s']:.2f}s",
          fx(lambda s: f"{s['latency_p50_s']:.2f}s")),
-        ("Cost per 1k tickets", cost(b), cost(c), fx(cost)),
+        ("Cost per 1k test cases", cost(b), cost(c), fx(cost)),
     ]
 
 
@@ -118,7 +118,7 @@ def main():
     ap.add_argument("--accept", action="append", default=[])
     ap.add_argument("--reject", action="append", default=[])
     ap.add_argument("--apply-edit", help="JSON file with the engineer's edited lines (see docstring)")
-    ap.add_argument("--tag", help="ticket-set tag: agent__<model>__<tag>.jsonl in, reports/migration_agent_<tag> out")
+    ap.add_argument("--tag", help="test case-set tag: agent__<model>__<tag>.jsonl in, reports/migration_agent_<tag> out")
     args = ap.parse_args()
     global OUT
     if args.tag:
@@ -267,22 +267,22 @@ def main():
                           f"`{cfg}` instead of `temperature: 0`, and outputs can vary between runs."]
                          if args.candidate_config == {} else []),
         "steps": ({"names": A.STEPS, "summary": sf["summary"],
-                   "method": f"For each regressed ticket, each step was swapped back to `{args.old}` one at a time "
+                   "method": f"For each regressed test case, each step was swapped back to `{args.old}` one at a time "
                              f"({args.runs} runs each, earlier steps replayed from the candidate's own run). A step is "
-                             f"causal when swapping it alone makes the ticket stop regressing; it is then checked the "
+                             f"causal when swapping it alone makes the test case stop regressing; it is then checked the "
                              f"other way round (only that step on `{args.candidate}`)." + bench_note()}
                   if sf else None),
         "causes": causes,
         "evidence": {"table": score_rows(rep, shown_rep),
                      "noise_floor": f"`{args.old}` made the same decision in all {args.runs} runs on "
                                     f"{rep['inputs_compared'] - rep['baseline']['unstable_inputs']}/{rep['inputs_compared']} "
-                                    f"tickets. A ticket counts as regressed only if most `{args.candidate}` runs fail a "
+                                    f"test cases. A test case counts as regressed only if most `{args.candidate}` runs fail a "
                                     f"hard check `{args.old}` passes, or score below `{args.old}`'s worst run."},
         "fixes": fix_list, "edit_format": EDIT_FORMAT, "other_differences": other,
         "lines": [{"step": x["step"], "line_index": r["line_index"], "text": r["line"], "proven": r["status"] == "confirmed",
                    "repaired": r["repaired_runs"]} for x in (lf or {}).get("items", [])[:1] for r in
                   sorted(x["lines"], key=lambda r: r["line_index"])],
-        "limits": ["24 synthetic tickets with hand-written expected outcomes; scores depend on those labels.",
+        "limits": ["24 synthetic test cases with hand-written expected outcomes; scores depend on those labels.",
                    "**The `decide` prompt line \"Final-sale items are not eligible for refunds or replacements.\" was "
                    "planted** for this demo, chosen because it breaks only the new model (see "
                    "`reports/agent/plant_probe.json`). Apart from it, this candidate showed no regressions.",

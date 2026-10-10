@@ -55,7 +55,7 @@ def render(m):
         st = m["steps"]
         out += [st["method"], "", "| Step | Regressions it explains |", "|---|---|"]
         out += [f"| `{s}` | {v['explains']}/{v['of']} ({v['pct']}%) |" for s, v in st["summary"].items()]
-        out += ["", "● = new model ran that step, ○ = old model. ✓ = the ticket came out like the old pipeline."]
+        out += ["", "● = new model ran that step, ○ = old model. ✓ = the test case came out like the old pipeline."]
         for n, c in enumerate(causes):
             if c.get("experiments"):
                 table = ["", f"**`{c['input_id']}`**", ""] + matrix_markdown(c["experiments"])

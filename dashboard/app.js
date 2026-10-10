@@ -76,7 +76,7 @@ function stepSection(p,ti){
  const lines=(p.lines||[]).map(l=>`<li class="${l.proven?'proven':''}"><span>${esc(l.text)}</span><b>${l.proven?`removing it fixes ${esc(l.repaired)}`:`${esc(l.repaired)}`}</b></li>`).join('');
  const headline=cause.size?`The <span class="pipe-hl">${esc([...cause].join(' + '))}</span> step${cause.size>1?'s':''} broke.`:p.tickets.some(x=>x.verdict==='REGRESSED')?'Not traced to a step yet.':'No step broke.';
  const plantedNote=planted.size?`<p class="pipe-planted">Planted in <b>${esc([...planted].join(' + '))}</b> · step-finder found <b>${esc([...cause].join(' + ')||'nothing')}</b>${[...planted].every(s=>cause.has(s))&&[...cause].every(s=>planted.has(s))?' <span class="ok-text">✓ match</span>':''}</p>`:'';
- const noProof=t.verdict==='REGRESSED'?'<p class="pipe-caption">This broken ticket wasn’t among the ones we traced, so there are no swap tests for it.</p>':`<p class="pipe-caption">${esc(t.id)} ${t.verdict==='SAME'?'came out the same on both pipelines':`is ${esc(VERDICT[t.verdict]?.[1]||t.verdict)}`}: nothing to trace. Pick a red ticket above to see the proof.</p>`;
+ const noProof=t.verdict==='REGRESSED'?'<p class="pipe-caption">This broken test case wasn’t among the ones we traced, so there are no swap tests for it.</p>':`<p class="pipe-caption">${esc(t.id)} ${t.verdict==='SAME'?'came out the same on both pipelines':`is ${esc(VERDICT[t.verdict]?.[1]||t.verdict)}`}: nothing to trace. Pick a red test case above to see the proof.</p>`;
  return `<section class="viz-card pipe-card" id="pp-step" aria-label="Problematic step">
  <div class="viz-title"><div><p class="eyebrow">2 · THE PROBLEMATIC STEP</p><h2>${headline}</h2></div></div>${plantedNote}
  <div class="pipe-flow">${flow}</div>
@@ -86,8 +86,8 @@ function stepSection(p,ti){
  ${t.verdict==='REGRESSED'&&failedInstruction?`<p class="trace-explanation"><b>The decision is still ${esc(t.outputs.new)}.</b> The problem is in the customer-facing reply: the new pipeline violated “${esc(failedInstruction)}”${cause.size?` after the <b>${esc([...cause].join(' + '))}</b> step rewrote it`:''}.</p>`:''}
  <p class="pipe-caption">Red cells: decisions that differ from the old pipeline. <span class="cell-mark">prompt ±</span>: that step’s prompt differs. ${t.first_divergence&&cause.size&&!cause.has(t.first_divergence)?`The first difference shows up in <b>${esc(t.first_divergence)}</b>, but the cause is <b>${esc([...cause].join(' + '))}</b>: the error travels downstream.`:''}</p>
  ${proof?`<h3 class="pipe-h">The proof: swap one step at a time</h3>${cause.size?`<p class="proof-conclusion"><b>Conclusion:</b> swapping <b>${esc([...cause].join(' + '))}</b> back is the change that restores the required behavior. Swapping the other steps does not.</p>`:''}<div class="proof-legend"><span><i class="old"></i>old model at this step</span><span><i class="new"></i>new model at this step</span></div><div class="proof">${proof}</div>
- <p class="pipe-caption">“Fixed” means this mixed pipeline passes the full ticket requirement—not merely that its category and action match.</p>`:noProof}
- ${lines?`<h3 class="pipe-h">The line in the ${esc(lineStep)} prompt</h3><ol class="pipe-lines">${lines}</ol><p class="pipe-caption">Each line was removed on its own and the broken tickets re-run.</p>`:''}
+ <p class="pipe-caption">“Fixed” means this mixed pipeline passes the full test case requirement—not merely that its category and action match.</p>`:noProof}
+ ${lines?`<h3 class="pipe-h">The line in the ${esc(lineStep)} prompt</h3><ol class="pipe-lines">${lines}</ol><p class="pipe-caption">Each line was removed on its own and the broken test cases re-run.</p>`:''}
  </section>`;
 }
 function fixSection(m){
@@ -96,7 +96,7 @@ function fixSection(m){
  const body=fixes.length?fixes.map(f=>{const v=f.verification,old=String(f.old_text||'').split('\n'),neu=f.new_text?String(f.new_text).split('\n'):[];
   return `<div class="fix-card ${esc(f.decision)}"><div class="fix-head"><strong>${esc(f.id)}</strong><span>${esc(f.summary)}</span><em class="fix-status ${esc(f.decision)}">${esc(badge(f.decision))}</em></div>
   <div class="diff">${old.map(l=>`<div class="removed">- ${esc(l)}</div>`).join('')}${neu.map(l=>`<div class="added">+ ${esc(l)}</div>`).join('')}</div>
-  <p class="fix-verify">Re-ran all ${esc(v.inputs)} tickets with this change: <b>${esc(v.verdict_counts.REGRESSED)} broken</b>${v.newly_regressed?.length?` · newly broken: ${esc(v.newly_regressed.join(', '))}`:''} ${v.passes?'<span class="ok-text">✓ verified</span>':'<span class="bad-text">✗ not verified</span>'}</p>
+  <p class="fix-verify">Re-ran all ${esc(v.inputs)} test cases with this change: <b>${esc(v.verdict_counts.REGRESSED)} broken</b>${v.newly_regressed?.length?` · newly broken: ${esc(v.newly_regressed.join(', '))}`:''} ${v.passes?'<span class="ok-text">✓ verified</span>':'<span class="bad-text">✗ not verified</span>'}</p>
   ${f.caution?`<p class="pipe-caption">${esc(f.caution)}</p>`:''}</div>`;}).join('')
   :`<p class="pipe-caption">${m.pipeline.planted_steps?'This report comes from the step-finder benchmark, which only measures finding the broken step, so no fix was written.':'No fix proposed.'}</p>`;
  return `<section class="viz-card pipe-card" id="pp-fix" aria-label="Fixes"><div class="viz-title"><div><p class="eyebrow">3 · FIX${fixes.length===1?'':'ES'}</p><h2>${fixes.length?`${fixes.length} proposed change${fixes.length===1?'':'s'}, each verified on every ticket`:'No fix yet'}</h2></div></div>${body}</section>`;
@@ -105,21 +105,21 @@ function finalSection(m,ti){
  const p=m.pipeline,f=p.fix,fixes=m.fixes||[];
  const chosen=fixes.find(x=>['accepted','edited'].includes(x.decision))||fixes.find(x=>x.verification?.passes)||fixes[0];
  const bar=(n,cls)=>`<div class="fix-bar ${cls}"><i style="width:${f.total&&n?Math.max(2,100*n/f.total):0}%"></i></div>`;
- if(!chosen||f.after==null)return `<section class="viz-card pipe-card" id="pp-final" aria-label="Final result"><div class="viz-title"><div><p class="eyebrow">4 · FINAL RESULT</p><h2>${f.before?`${f.before} of ${f.total} tickets still broken`:'Nothing broke'}</h2></div></div><p class="pipe-caption">${f.before?'No verified fix to apply yet.':'The new pipeline matches the old one on every ticket.'}</p></section>`;
+ if(!chosen||f.after==null)return `<section class="viz-card pipe-card" id="pp-final" aria-label="Final result"><div class="viz-title"><div><p class="eyebrow">4 · FINAL RESULT</p><h2>${f.before?`${f.before} of ${f.total} test cases still broken`:'Nothing broke'}</h2></div></div><p class="pipe-caption">${f.before?'No verified fix to apply yet.':'The new pipeline matches the old one on every test case.'}</p></section>`;
  const status=['accepted','edited'].includes(chosen.decision)?`Fix ${esc(chosen.id)} ${chosen.decision==='edited'?'accepted with edits':'accepted'}.`:`With ${esc(chosen.id)} applied (still awaiting an engineer’s review).`;
  const broken=p.tickets.filter(t=>t.verdict==='REGRESSED'),timeline=broken.filter(t=>t.failures?.some(x=>x.check==='draft.states_timeline')).length,decision=broken.filter(t=>t.failures?.some(x=>x.kind==='accuracy')).length;
  const repairs=[timeline&&`<div><strong>${timeline}</strong><span>customer replies now keep the payment method and 5–7 business-day timeline</span></div>`,decision&&`<div><strong>${decision}</strong><span>wrong final decision corrected</span></div>`].filter(Boolean).join('');
- return `<section class="viz-card pipe-card" id="pp-final" aria-label="Final result"><div class="viz-title"><div><p class="eyebrow">4 · FINAL RESULT</p><h2>${f.after===0?'Every ticket comes out as before.':`${f.after} of ${f.total} tickets still broken.`}</h2></div><span class="pill">${status}</span></div>
+ return `<section class="viz-card pipe-card" id="pp-final" aria-label="Final result"><div class="viz-title"><div><p class="eyebrow">4 · FINAL RESULT</p><h2>${f.after===0?'Every test case comes out as before.':`${f.after} of ${f.total} test cases still broken.`}</h2></div><span class="pill">${status}</span></div>
  <div class="pipe-fix"><div><span>New model, before the fix</span>${bar(f.before,'before')}<b>${esc(f.before)} of ${esc(f.total)} broken</b></div><div><span>New model + ${esc(chosen.id)}</span>${bar(f.after,'after')}<b>${esc(f.after)} of ${esc(f.total)} broken</b></div></div>
  ${repairs?`<div class="repair-breakdown">${repairs}</div>`:''}
- <h3 class="pipe-h">Every ticket, after the fix <small>· click one</small></h3><div class="pipe-map">${ticketMap(p,ti,'fixed')}</div>
+ <h3 class="pipe-h">Every test case, after the fix <small>· click one</small></h3><div class="pipe-map">${ticketMap(p,ti,'fixed')}</div>
  <p class="pipe-legend"><span class="pipe-tile ok">t01</span> as before <span class="pipe-tile chg">t02</span> changed, not worse <span class="pipe-tile bad">t07</span> broken <span class="pipe-tile ok healed">t07<i>fixed</i></span> repaired by the fix</p></section>`;
 }
 function initialSection(m,ti){
  const p=m.pipeline,n=p.tickets.filter(x=>x.verdict==='REGRESSED').length;
- return `<section class="viz-card pipe-card" id="pp-initial" aria-label="Initial migration"><div class="viz-title"><div><p class="eyebrow">1 · INITIAL MIGRATION</p><h2>${esc(p.old_label)} → ${esc(p.new_label)}: ${n?`${n} of ${p.tickets.length} tickets broke`:'nothing broke'}</h2></div></div>
+ return `<section class="viz-card pipe-card" id="pp-initial" aria-label="Initial migration"><div class="viz-title"><div><p class="eyebrow">1 · INITIAL MIGRATION</p><h2>${esc(p.old_label)} → ${esc(p.new_label)}: ${n?`${n} of ${p.tickets.length} test cases broke`:'nothing broke'}</h2></div></div>
  <div class="pp-slot"></div>
- <h3 class="pipe-h">Every ticket on the new model, before any fix <small>· click one to inspect it below</small></h3><div class="pipe-map">${ticketMap(p,ti,'new')}</div>
+ <h3 class="pipe-h">Every test case on the new model, before any fix <small>· click one to inspect it below</small></h3><div class="pipe-map">${ticketMap(p,ti,'new')}</div>
  <p class="pipe-legend"><span class="pipe-tile ok">t01</span> as before <span class="pipe-tile chg">t02</span> changed, not worse <span class="pipe-tile bad">t07</span> broken</p></section>`;
 }
 function pipelinePage(m,ti){return initialSection(m,ti)+stepSection(m.pipeline,ti)+fixSection(m)+finalSection(m,ti);}
@@ -189,7 +189,7 @@ function renderVisualDashboard() {
  const numeric=v=>typeof v==='number'&&Number.isFinite(v);
  const maximum=key=>Math.max(0,...rows.map(r=>numeric(r[key])?r[key]:0));
  const cell=(value,format,max,kind)=>`<div class="table-metric ${numeric(value)?'':'missing'}"><strong>${numeric(value)?format(value):'—'}</strong><span class="mini-track ${kind}" aria-hidden="true">${numeric(value)?`<i style="width:${max>0?Math.min(100,Math.max(0,value/max*100)):0}%"></i>`:''}</span>${numeric(value)?'':'<small>Not available</small>'}</div>`;
- app.innerHTML=`<div class="dashboard-heading"><div><p class="eyebrow">MIGRATION OVERVIEW / ${esc(m.pr?.target_repo||m.task)}</p><h1>New model. Same expectations.</h1><p>Find what changed. See what’s ready to ship.</p></div><div class="heading-actions"><span class="ready-badge"><i></i>${m.final.ready_to_merge?'Ready for review':'Needs review'}</span><button class="text-button" id="full-report">Full report ↗</button></div></div>
+ app.innerHTML=`<div class="dashboard-heading"><div><p class="eyebrow">MIGRATION OVERVIEW / ${esc(m.pr?.target_repo||m.task)}</p><h1>New model. Same expectations.</h1><p>Find what changed. See what’s ready to ship.</p></div><div class="heading-actions"><span class="ready-badge"><i></i>${m.final.ready_to_merge?'Ready for review':'Needs review'}</span></div></div>
  <div class="migration-route"><span class="route-caption">MODEL UPGRADE</span><strong>${esc(m.baseline.model)}</strong><span class="route-line"><i></i>→</span><strong>${esc(m.chosen)}</strong><span class="route-tag">Prompt repaired</span><span class="route-note">Recorded evaluation</span></div>
  <div class="visual-grid">${m.pipeline?pipelinePage(m,0):''}<section class="viz-card model-chart comparison-table-card"><div class="viz-title"><div><p class="eyebrow">MODEL COMPARISON</p><h2>The trade-offs, side by side.</h2></div><span class="table-stage">Before prompt repair</span></div><div class="comparison-scroll"><table class="comparison-table"><caption class="sr-only">Baseline and candidate metrics before prompt repair. Missing values retain their column positions.</caption><thead><tr><th scope="col">Model<span>Baseline & candidates</span></th><th scope="col">Quality <em>↑</em><span>${m.task==='agent'?'Correct-answer score (category, order ID, action, reply)':'Entity match score (F1)'} · higher is better</span></th><th scope="col">Cost <em>↓</em><span>USD / 1,000 calls</span></th><th scope="col">Speed <em>↓</em><span>Median response · seconds</span></th><th scope="col">Tail latency <em>↓</em><span>p95 · seconds</span></th><th scope="col">Got worse <em>↓</em><span>Inputs worse than baseline</span></th></tr></thead><tbody>${rows.map(r=>`<tr class="${r.isBaseline?'baseline-row':r.model===selectedModel?'focused-row':''}"><th scope="row">${r.isBaseline?`<strong>${esc(r.model)}</strong>`:`<button class="model-select" data-model="${esc(r.model)}" aria-pressed="${r.model===selectedModel}">${esc(r.model)}</button>`}<span class="model-tag ${r.model===m.chosen?'chosen-tag':''}">${r.isBaseline?'Current model':r.model===m.chosen?'Selected for migration':'Alternative'}</span></th><td>${cell(r.accuracy,percent,1,'quality-bar')}</td><td>${cell(r.cost_per_1k_calls_usd,money,maximum('cost_per_1k_calls_usd'),'cost-bar')}</td><td>${cell(r.latency_p50_s,v=>v.toFixed(3),maximum('latency_p50_s'),'speed-bar')}</td><td>${cell(r.latency_p95_s,v=>v.toFixed(3),maximum('latency_p95_s'),'tail-bar')}</td><td>${r.isBaseline?'<span class="baseline-reference">Reference</span>':numeric(r.regressed)?`<span class="regression-pill ${r.regressed?'has-regressions':''}">${esc(r.regressed)} ${r.regressed===1?'input':'inputs'}</span>`:'<span class="baseline-reference">—<br>Not available</span>'}</td></tr>`).join('')}</tbody></table></div><div class="comparison-foot"><span>Bars share a scale within each column. Shorter cost and latency bars are better.</span><span>— Not supplied · space reserved</span></div></section>
  <section class="viz-card repair-chart"><div class="viz-title"><div><p class="eyebrow">REPAIR IMPACT</p><h2>${m.final.verdict_counts.REGRESSED===0?(initial?.regressed?'One fix. Nothing is worse now.':'Nothing got worse, so nothing to fix.'):m.fix_attempts?.length?'A fix is proposed. Awaiting review.':'Regressions remain.'}</h2></div><span class="repair-symbol">↗</span></div><div class="impact-number"><span>${esc(initial?.regressed??'—')}</span><span class="impact-arrow">→</span><strong>${esc(m.final.verdict_counts.REGRESSED)}</strong><small>got worse</small></div><div class="stack-row"><span>Before</span><div class="stack" aria-label="Before repair: ${esc(initial?.regressed)} got worse">${stack(initial?.verdict_counts)}</div></div><div class="stack-row"><span>After</span><div class="stack" aria-label="After repair: ${esc(m.final.verdict_counts.REGRESSED)} got worse">${stack(m.final.verdict_counts)}</div></div><div class="stack-legend"><span><i class="same"></i>Same</span><span><i class="improved"></i>Improved</span><span><i class="changed"></i>Changed</span><span><i class="regressed"></i>Got worse</span></div></section>
@@ -198,7 +198,7 @@ function renderVisualDashboard() {
  <section class="delivery-strip"><div class="delivery-icon">⑂</div><div><h2>${m.final.ready_to_merge?'Migration ready for your review':'Migration needs review'}</h2><p>Model upgrade + prompt repair in one proposed code change.</p></div><button class="button primary" id="view-diff">Review code change ↗</button></section><div class="dashboard-foot"><span>Trade-off: ${final.latency_p50_s>m.baseline.latency_p50_s?'slower':'faster'} median response · ${final.cost_per_1k_calls_usd==null?'candidate cost unavailable':'cost in full report'} · ${final.unstable_inputs} inputs changed between runs</span><span>Recorded results · no live calls or published PR</span></div>`;
  app.querySelectorAll('[data-model]').forEach(b=>b.onclick=()=>{selectedModel=b.dataset.model;render();});
  app.querySelectorAll('[data-result]').forEach(b=>b.onclick=()=>openDetail(0,Number(b.dataset.result)));
- app.querySelector('#full-report').onclick=()=>{reportView=true;phase='complete';completed=entries.length;render();};
+ app.querySelector('#full-report')?.addEventListener('click',()=>{reportView=true;phase='complete';completed=entries.length;render();});
  app.querySelector('#view-diff').onclick=()=>{dialog.innerHTML=`<div class="detail-head"><div><p class="eyebrow">PROPOSED CODE CHANGE</p><h2 id="detail-title">Review the migration</h2></div><button class="close" aria-label="Close details">×</button></div><div class="detail-body"><p>${esc(m.pr?.target_path)}</p><pre class="diff code-diff">${esc(m.pr?.diff||'No diff supplied.')}</pre><p class="provider">Recorded proposal. No published PR link supplied.</p></div>`;dialog.querySelector('.close').onclick=()=>dialog.close();dialog.showModal();};
  if(m.pipeline){
   // Agent reports: 1 initial migration (with the comparison table) · 2 step · 3 fixes · 4 final result.
@@ -207,38 +207,25 @@ function renderVisualDashboard() {
   document.querySelectorAll('#pp-initial .pipe-tile[data-ti],#pp-final .pipe-tile[data-ti]').forEach(b=>b.addEventListener('click',()=>{selectTicket(m,Number(b.dataset.ti));document.querySelector('#pp-step').scrollIntoView({behavior:'smooth',block:'start'});}));
   installPipeline(m);return;
  }
+ document.querySelectorAll('.repair-chart,.evidence-card,.checks-card,.delivery-strip').forEach(el=>el.remove());
  installDashboardMotion(m);
 }
 function installDashboardMotion(m) {
  const reduce=window.matchMedia('(prefers-reduced-motion: reduce)');
  const heading=app.querySelector('.dashboard-heading');
  heading.classList.add('cinema-hero');
- heading.innerHTML=`<div class="hero-copy"><p class="hero-kicker">Upshift / Model migration</p><h1>Move forward.<br><span>Keep what works.</span></h1><p class="hero-description">A new model. A precise repair.<br>Every change, backed by an evaluation.</p><div class="hero-actions"><button class="button primary" id="jump-comparison">Explore the results ↓</button><button class="text-button" id="full-report">Full report ↗</button></div></div><div class="model-stage" aria-label="Migration from ${esc(m.baseline.model)} to ${esc(m.chosen)}"><div class="metal-word" aria-hidden="true">SHIFT</div><div class="stage-halo" aria-hidden="true"></div><div class="model-object model-old"><span class="object-caption">CURRENT MODEL</span><strong>${esc(m.baseline.model)}</strong><div class="chip-traces" aria-hidden="true"></div><span class="object-foot">Baseline behavior</span></div><div class="model-object model-new"><span class="object-caption">SELECTED UPGRADE</span><strong>${esc(m.chosen)}</strong><div class="chip-traces" aria-hidden="true"></div><span class="object-foot">${m.final.ready_to_merge?'Ready for review':'Needs review'} <i></i></span></div><div class="stage-caption">${esc(m.pr?.target_repo||m.task)} <span>·</span> Recorded migration</div></div>`;
+ heading.innerHTML=`<div class="hero-copy"><p class="hero-kicker">Upshift / Model migration</p><h1>Move forward.<br><span>Keep what works.</span></h1><p class="hero-description">A new model. A precise repair.<br>Every change, backed by an evaluation.</p><div class="hero-actions"><button class="button primary" id="jump-comparison">Explore the results ↓</button></div></div><div class="model-stage" aria-label="Migration from ${esc(m.baseline.model)} to ${esc(m.chosen)}"><div class="metal-word" aria-hidden="true">SHIFT</div><div class="stage-halo" aria-hidden="true"></div><div class="model-object model-old"><span class="object-caption">CURRENT MODEL</span><strong>${esc(m.baseline.model)}</strong><div class="chip-traces" aria-hidden="true"></div><span class="object-foot">Baseline behavior</span></div><div class="model-object model-new"><span class="object-caption">SELECTED UPGRADE</span><strong>${esc(m.chosen)}</strong><div class="chip-traces" aria-hidden="true"></div><span class="object-foot">${m.final.ready_to_merge?'Ready for review':'Needs review'} <i></i></span></div><div class="stage-caption">${esc(m.pr?.target_repo||m.task)} <span>·</span> Recorded migration</div></div>`;
  app.querySelector('.migration-route').remove();
  const comparison=app.querySelector('.comparison-table-card');comparison.id='model-comparison';
  heading.querySelector('#jump-comparison').onclick=()=>comparison.scrollIntoView({behavior:reduce.matches?'instant':'smooth',block:'start'});
- heading.querySelector('#full-report').onclick=()=>{reportView=true;phase='complete';completed=entries.length;render();};
- const cause=m.causes?.[0], edit=m.final.prompt_edit;
- const evidence=app.querySelector('.evidence-card'), impact=app.querySelector('.repair-chart');
- if(cause && edit && evidence && impact){
- const corrected=m.comparison.items.find(i=>i.input_id===cause.input_id)?.candidate.output||[];
- const entityList=(values,bad=false)=>values.map(v=>`<span class="entity ${bad&&!cause.baseline_output.includes(v)?'entity-bad':''}">${esc(v)}</span>`).join('');
- const addition=edit.new_text?.startsWith(edit.old_text)?edit.new_text.slice(edit.old_text.length).replace(/^[.\s]+/,''):edit.new_text;
- const section=document.createElement('section');section.className='scroll-repair';section.setAttribute('aria-label','Recorded repair walkthrough');
- section.innerHTML=`<div class="repair-sticky"><div class="repair-anchor"><p class="eyebrow">FOLLOW THE REPAIR</p><h2>Same sentence.<br>A better interpretation.</h2><p class="anchored-quote">“${esc(cause.text)}”</p><div class="anchor-baseline"><span class="demo-label">Expected extraction</span><div class="entity-list">${entityList(cause.baseline_output)}</div></div><nav class="repair-stages" aria-label="Repair stages">${['Detect','Repair','Verify'].map((name,i)=>`<button data-repair-step="${i}"><span>0${i+1}</span>${name}</button>`).join('')}</nav><p class="scroll-cue">↓ Scroll to follow the recorded repair</p></div><div class="repair-scenes"><article class="repair-scene" data-scene="0"><span class="scene-number">01 / DETECT</span><h3>The upgrade adds a wrong label.</h3><div class="entity-list">${entityList(cause.candidate_output,true)}</div><p>${esc(cause.evidence?.join(' · '))}</p><span class="pill warn">Something got worse</span></article><article class="repair-scene" data-scene="1"><span class="scene-number">02 / REPAIR</span><h3>Clarify the instruction.</h3><p class="scene-component">${esc(edit.component)}</p><blockquote>${esc(addition)}</blockquote><details><summary>Inspect the complete prompt edit</summary><div class="diff"><div class="removed">− ${esc(edit.old_text)}</div><div class="added">+ ${esc(edit.new_text)}</div></div></details></article><article class="repair-scene" data-scene="2"><span class="scene-number">03 / VERIFY</span><h3>Retested with the repaired prompt.</h3><div class="entity-list">${entityList(corrected)}</div><div class="impact-slot"></div></article></div><div class="scroll-track" aria-hidden="true"><i></i></div></div>`;
- evidence.replaceWith(section);section.querySelector('.impact-slot').append(impact);
- impact.querySelector('.viz-title').remove();
- }
- 
+
  const observer=new IntersectionObserver(items=>items.forEach(item=>{if(item.isIntersecting){item.target.classList.add('motion-visible');observer.unobserve(item.target);}}),{threshold:0.12});
- for(const selector of ['.comparison-table-card','.checks-card','.delivery-strip']){const el=app.querySelector(selector);if(el){el.classList.add('motion-ready');observer.observe(el);}}
- app.querySelectorAll('.mosaic-cell').forEach((el,i)=>el.style.setProperty('--reveal-delay',`${i*22}ms`));
- const section=app.querySelector('.scroll-repair');let frame=0,active=-1;
- function setScene(index){if(active===index)return;active=index;section.querySelectorAll('[data-scene]').forEach((el,i)=>{el.classList.toggle('scene-active',i===index);el.inert=!reduce.matches&&i!==index;el.setAttribute('aria-hidden',String(!reduce.matches&&i!==index));});section.querySelectorAll('[data-repair-step]').forEach((el,i)=>{if(i===index)el.setAttribute('aria-current','step');else el.removeAttribute('aria-current');});}
- function update(){frame=0;const heroProgress=reduce.matches?0:Math.min(1,Math.max(0,-heading.getBoundingClientRect().top/heading.offsetHeight));heading.style.setProperty('--hero-p',heroProgress);if(!section)return;const rect=section.getBoundingClientRect(),sticky=section.firstElementChild;const distance=Math.max(1,section.offsetHeight-sticky.offsetHeight);const progress=Math.min(1,Math.max(0,((parseFloat(getComputedStyle(sticky).top)||0)-rect.top)/distance));setScene(Math.min(2,Math.floor(progress*3)));section.querySelector('.scroll-track i').style.transform=`scaleX(${progress})`;}
+ comparison.classList.add('motion-ready');observer.observe(comparison);
+ let frame=0;
+ function update(){frame=0;const progress=reduce.matches?0:Math.min(1,Math.max(0,-heading.getBoundingClientRect().top/heading.offsetHeight));heading.style.setProperty('--hero-p',progress);}
  function onScroll(){if(!frame)frame=requestAnimationFrame(update);}
- function preference(){active=-1;update();}
- if(section){section.querySelectorAll('[data-repair-step]').forEach((button,i)=>button.onclick=()=>{if(reduce.matches){section.querySelector(`[data-scene="${i}"]`).scrollIntoView({block:'center'});return;}const distance=Math.max(1,section.offsetHeight-section.firstElementChild.offsetHeight);window.scrollTo({top:window.scrollY+section.getBoundingClientRect().top-(parseFloat(getComputedStyle(section.firstElementChild).top)||0)+distance*(i===0?0:i===1?.5:1),behavior:'smooth'});});window.addEventListener('scroll',onScroll,{passive:true});window.addEventListener('resize',onScroll);reduce.addEventListener('change',preference);update();}
+ function preference(){update();}
+ window.addEventListener('scroll',onScroll,{passive:true});window.addEventListener('resize',onScroll);reduce.addEventListener('change',preference);update();
  motionCleanup=()=>{observer.disconnect();cancelAnimationFrame(frame);window.removeEventListener('scroll',onScroll);window.removeEventListener('resize',onScroll);reduce.removeEventListener('change',preference);};
 }
 function normalizeMigration(raw) {
@@ -266,11 +253,41 @@ function renderMigration() {
  if(m.pr) banner.insertAdjacentHTML('afterend', `<section class="panel migration-section pr-section"><div class="panel-heading"><div><p class="eyebrow">04 / Proposed code change</p><h2>Pull request preview</h2><p>${esc(m.pr.title)}</p></div></div><div class="repair-body"><p class="provider">${esc(m.pr.target_path)}</p><details class="record"><summary>View proposed diff</summary><pre class="diff code-diff">${esc(m.pr.diff||'No diff supplied.')}</pre></details><p class="provider">${safeURL(m.pr.url)?`<a href="${esc(safeURL(m.pr.url))}" target="_blank" rel="noopener noreferrer">Open pull request ↗</a>`:'No published PR link is included. This is the recorded proposal.'}</p></div></section>`);
 }
 function render() {
+motionCleanup();
  // Reports with a `demo` block are shown as a four-slide deck (demo-views.js) instead of the usual report.
- if(data.demo){app.classList.remove('full-report-view');app.innerHTML=demoSection(data);bindDemo(app,data);return;}
- app.classList.toggle('full-report-view',reportView);
- if(reportView)motionCleanup();
- if(data.migration && !reportView){renderVisualDashboard();return;}
+ if(data.demo){app.classList.remove('full-report-view','unified-dashboard');app.innerHTML=demoSection(data);bindDemo(app,data);return;}
+ const pipeline=data.migration?.pipeline;
+ // Agent reports keep the dashboard / full-report toggle that the pipeline views rely on.
+ if (data.migration && pipeline) {
+  app.classList.remove('unified-dashboard');
+  app.classList.toggle('full-report-view',reportView);
+  if(!reportView){renderVisualDashboard();return;}
+  renderReport();return;
+ }
+ app.classList.remove('unified-dashboard');
+ if (!data.migration) { app.classList.add('full-report-view'); renderReport(); return; }
+ // Compose report context and evidence, preserving controls and detail handlers.
+ renderReport();
+ const reportHeader=app.querySelector('.intro');
+ const reportNote=app.querySelector('.sample');
+ const reportTitle=reportHeader.querySelector('h1');
+ const title=document.createElement('h2');title.className='report-title';title.textContent=reportTitle.textContent;reportTitle.replaceWith(title);
+ const reportNodes=Array.from(app.children);
+ const diagnosis=reportNodes.findIndex(el=>el.classList.contains('panel')&&el.classList.contains('migration-section'));
+ const evidence=reportNodes.slice(diagnosis);
+ renderVisualDashboard();
+ app.classList.add('full-report-view','unified-dashboard');
+ const context=document.createElement('section');context.className='report-context';context.id='report-overview';context.setAttribute('aria-label','Migration report overview');
+ context.append(reportHeader);if(reportNote)context.append(reportNote);
+ app.querySelector('.visual-grid').before(context);
+ app.querySelector('#jump-comparison').onclick=()=>context.scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth',block:'start'});
+ const report=document.createElement('div');
+ report.className='report-sections';
+ report.append(...evidence);
+ app.append(report);
+ app.querySelector('.comparison-table-card .eyebrow').textContent='01 / Model comparison · before repair';
+}
+function renderReport() {
  const total=entries.length, done=phase==='complete', remaining=unresolved().length;
  const end=Date.parse(data.baseline.retires_on), reference=Date.parse(data.run_id);
  const days=Number.isFinite(end)&&Number.isFinite(reference)?Math.max(0,Math.ceil((end-reference)/86400000)):null;
@@ -292,15 +309,45 @@ function render() {
  <div class="statusbar"><span>${done?(data._format==='ner'?`${data.ner.verdict_counts.REGRESSED??0} got worse · ${data.ner.verdict_counts.CHANGED??0} changed · ${data.ner.verdict_counts.IMPROVED??0} improved`:remaining?`${remaining} flagged results to review. Fixes apply to every result with the same cause.`:'All flagged results resolved.'): 'Run the comparison to reveal individual results.'}</span><span>${data._format==='ner'?`Inputs that changed between runs: ${esc(data.ner.candidate.unstable_inputs)} / ${esc(data.ner.inputs_compared)}`:`Baseline variation: ${esc(Math.round(data.baseline.noise_rate*100))}%`}</span></div>
  ${data._format==='ner'?`<section class="pr-banner ${data.ner.ready_to_merge?'':'merge-blocked'}" role="status"><div><h2><span class="pr-icon">${data.ner.ready_to_merge?'✓':'!'}</span>${data.ner.ready_to_merge?'Ready to merge':'Not ready to merge'}</h2><p>${esc(data.ner.verdict_counts.REGRESSED??0)} got worse · ${esc(data.ner.verdict_counts.IMPROVED??0)} improved · ${esc(data.ner.verdict_counts.CHANGED??0)} changed · ${esc(data.ner.verdict_counts.SAME??0)} same</p><span class="pill">${esc(data.ner.inputs_compared)} inputs compared · ${esc(data.ner.candidate.unstable_inputs)} inputs changed between runs</span></div><span class="provider">${data.ner.ready_to_merge?'All merge checks passed':'Review the examples that got worse or changed'}</span></section>`:done&&remaining===0?`<section class="pr-banner" role="status"><div><h2><span class="pr-icon">⑂</span>Migration ready for review</h2><p>${esc(data.pr.title)}</p><span class="pill">${esc(data.pr.status)} · ${esc(data.pr.lines_changed)} lines changed</span></div>${safeURL(data.pr.url)?`<a class="button" href="${esc(safeURL(data.pr.url))}" target="_blank" rel="noopener noreferrer">Open pull request ↗</a>`:'<span class="provider">PR link not available in this report</span>'}</section>`:''}
  <footer><span>UPSHIFT / Inspect. Repair. Migrate.</span><span>Report ${esc(data.run_id)} · Recorded replay</span></footer>`;
- if(data.migration) {renderMigration(); app.querySelector('.actions').insertAdjacentHTML('afterbegin','<button class="button" id="demo-view">← Dashboard</button>'); app.querySelector('#demo-view').onclick=()=>{clearTimers();reportView=false;render();};}
+ if(data.migration) {renderMigration(); if(data.migration.pipeline){app.querySelector('.actions').insertAdjacentHTML('afterbegin','<button class="button" id="demo-view">← Dashboard</button>'); app.querySelector('#demo-view').onclick=()=>{clearTimers();reportView=false;render();};}}
  document.querySelector('#run').onclick=start;
  document.querySelector('#reset').onclick=reset;
  app.querySelectorAll('[data-ci]').forEach(b=>b.onclick=()=>openDetail(+b.dataset.ci,+b.dataset.ri));
 }
 function safeURL(value){try{const u=new URL(value);return ['https:','http:'].includes(u.protocol)?u.href:null;}catch{return null;}}
 function clearTimers(){clearInterval(timer);timer=null;fixTimers.forEach(clearTimeout);fixTimers.clear();}
-function reset(){clearTimers();phase='idle';completed=0;fixed.clear();fixing.clear();selected=null;dialog.close();render();}
-function start(){reset();phase='running';render();const delay=15000/entries.length;timer=setInterval(()=>{completed++;if(completed>=entries.length){completed=entries.length;phase='complete';clearInterval(timer);timer=null;}render();if(dialog.open)drawDetail();},delay);}
+// Keep the page and open evidence mounted while recorded results replay.
+function updateReplay() {
+ if (!data.migration) { render(); return; }
+ const total=entries.length;
+ const run=app.querySelector('#run');
+ run.disabled=phase==='running';
+ run.textContent=phase==='running'?'Running replay…':phase==='complete'?'↻ Replay run':'▶ Run comparison';
+ const meta=app.querySelector('.progress-meta');
+ meta.innerHTML=`<strong>${completed} / ${total}</strong><br>${phase==='idle'?'Ready to replay':phase==='running'?'Replaying results':'Comparison complete'}`;
+ const progress=app.querySelector('[role="progressbar"]');
+ progress.setAttribute('aria-valuenow',String(completed));
+ progress.querySelector('i').style.width=`${completed/total*100}%`;
+ app.querySelectorAll('[data-ci]').forEach(button=>{
+  const ci=Number(button.dataset.ci),ri=Number(button.dataset.ri),r=data.candidates[ci].results[ri];
+  const n=entries.findIndex(e=>e.ci===ci&&e.ri===ri),revealed=n<completed;
+  const state=revealed?r.status:phase==='running'&&n===completed?'running':'pending';
+  button.className=`tile ${state}`;button.disabled=!revealed;
+  button.title=`${r.input_id} · ${state}`;
+  button.setAttribute('aria-label',`${data.candidates[ci].model}, input ${ri+1}, ${state}`);
+ });
+ app.querySelector('.statusbar span').textContent=phase==='complete'?`${data.ner.verdict_counts.REGRESSED??0} regressed · ${data.ner.verdict_counts.CHANGED??0} changed · ${data.ner.verdict_counts.IMPROVED??0} improved`:phase==='running'?'Replaying recorded results. You can keep scrolling and inspect revealed inputs.':'Run the comparison to reveal individual results.';
+}
+function reset(){clearTimers();phase='idle';completed=0;fixed.clear();fixing.clear();selected=null;dialog.close();updateReplay();}
+function start(){
+ clearTimers();phase='running';completed=0;fixed.clear();fixing.clear();selected=null;dialog.close();updateReplay();
+ const delay=15000/entries.length;
+ timer=setInterval(()=>{
+  completed++;
+  if(completed>=entries.length){completed=entries.length;phase='complete';clearInterval(timer);timer=null;}
+  updateReplay();
+ },delay);
+}
 function openDetail(ci,ri){selected={ci,ri};drawDetail();if(!dialog.open)dialog.showModal();}
 function drawDetail(){
  if(!selected)return;
@@ -319,7 +366,7 @@ function showError(error){app.innerHTML=`<section class="error"><h1>Couldn’t o
 async function loadReport(url){
  clearTimers();phase='idle';completed=0;fixed.clear();fixing.clear();selected=null;reportView=false;selectedModel=null;if(dialog.open)dialog.close();
  const response=await fetch(url,{cache:'no-store'});if(!response.ok)throw Error(`Could not load the report (${response.status}).`);
- const raw=await response.json();data=raw?.comparison && Array.isArray(raw.candidates)?normalizeMigration(raw):raw?.task==='ner'?normalizeNER(raw):raw;validate(data);entries=data.candidates.flatMap((c,ci)=>c.results.map((r,ri)=>({r,ci,ri})));render();
+ const raw=await response.json();data=raw?.comparison && Array.isArray(raw.candidates)?normalizeMigration(raw):raw?.task==='ner'?normalizeNER(raw):raw;validate(data);entries=data.candidates.flatMap((c,ci)=>c.results.map((r,ri)=>({r,ci,ri})));if(data.migration&&!data.migration.pipeline){phase='complete';completed=entries.length;}render();
 }
 function pickerOptions(){
  const groups=[...new Set(reports.map(r=>r.group||'Reports'))];
@@ -358,17 +405,17 @@ function drawLive(){
  const latest=live.rows.at(-1);
  const [cat,act]=String(latest?.label||'').split(' / ');
  const strip=latest&&latest.task==='agent'?`<div class="live-strip"><span class="live-strip-id">${esc(latest.input_id)}</span>${[['classify',`category: ${cat}`],['decide',`action: ${act}`],['draft',latest.error?'error':'reply written'],['tone',latest.passed===false?'checks failed':latest.error?'—':'checks passed']].map(([s,v],i)=>`<div class="pipe-node mini"><strong>${s}</strong><small>${esc(v)}</small></div>${i<3?'<span class="pipe-arrow">→</span>':''}`).join('')}</div>`:'';
- // Green = the ticket's outcome matches what it should be (gold score 1); red = it doesn't, or checks failed.
+ // Green = the test case's outcome matches what it should be (gold score 1); red = it doesn't, or checks failed.
  const tileClass=r=>r.error?'err':r.passed===false||(typeof r.score==='number'&&r.score<1)?'bad':'ok';
  const grids=files.slice(0,3).map(f=>{const ts=Object.values(f.tickets||{}).sort((a,b)=>String(a.input_id).localeCompare(String(b.input_id),undefined,{numeric:true}));
   const off=ts.filter(r=>tileClass(r)!=='ok').length;
-  return `<div class="live-grid-block"><div class="live-grid-head"><strong>${name(f.file)}</strong><span>${ts.length} tickets · <b class="ok-text">${ts.length-off} as expected</b>${off?` · <b class="bad-text">${off} off</b>`:''}</span></div><div class="live-grid">${ts.map(r=>`<span class="live-tile ${tileClass(r)}" title="${esc(r.input_id)}: ${esc(r.error||r.label||'')}${typeof r.score==='number'?` · score ${r.score.toFixed(2)}`:''}">${esc(r.input_id)}<small>${esc(String(r.label||'').split(' / ')[1]||'')}</small></span>`).join('')}</div></div>`;}).join('');
+  return `<div class="live-grid-block"><div class="live-grid-head"><strong>${name(f.file)}</strong><span>${ts.length} test cases · <b class="ok-text">${ts.length-off} as expected</b>${off?` · <b class="bad-text">${off} off</b>`:''}</span></div><div class="live-grid">${ts.map(r=>`<span class="live-tile ${tileClass(r)}" title="${esc(r.input_id)}: ${esc(r.error||r.label||'')}${typeof r.score==='number'?` · score ${r.score.toFixed(2)}`:''}">${esc(r.input_id)}<small>${esc(String(r.label||'').split(' / ')[1]||'')}</small></span>`).join('')}</div></div>`;}).join('');
  liveDialog.innerHTML=`<div class="detail-head"><div><p class="eyebrow">Live results</p><h2 id="live-title">Runs writing to upshift/results</h2></div><button class="close" aria-label="Close">×</button></div>
  <div class="detail-body">
  ${replayState?`<p class="provider">${replayState.state==='running'?'Replaying':'Replay '+esc(replayState.state)}: ${esc(replayState.file)} · ${esc(replayState.sent)}/${esc(replayState.total)} rows · recorded run, no model calls</p>`:''}
  ${live.connected?'':'<p>Not connected to the live feed. Run <code>npm start</code> from the <code>dashboard/</code> folder inside the upshift repo (or set <code>UPSHIFT_DIR</code>).</p>'}
- ${strip}${grids?`<p class="live-legend"><span class="live-tile ok">t01</span> outcome as expected <span class="live-tile bad">t07</span> outcome off (wrong decision or failed check) · latest run per ticket</p>`+grids:''}${files.length?`<details class="live-details"><summary>Show raw rows</summary><table class="live-table"><thead><tr><th>Run</th><th>Rows</th><th>Hard checks passed</th><th>Failed</th><th>Errors</th><th>Last row</th></tr></thead><tbody>${files.map(f=>`<tr class="${Date.now()-f.last<ACTIVE_MS?'live-active':''}"><td>${name(f.file)}</td><td>${f.rows}</td><td>${f.passed}</td><td>${f.failed}</td><td>${f.errors}</td><td>${ago(f.last)}</td></tr>`).join('')}</tbody></table>`
-  :'<p>No new rows yet. Use <strong>▶ Replay a run</strong> to watch a recorded run, or start a run in upshift (for example <code>python demo_e2e.py --break u3 --tag try1</code>); each ticket appears here as soon as it finishes.</p>'}
+ ${strip}${grids?`<p class="live-legend"><span class="live-tile ok">t01</span> outcome as expected <span class="live-tile bad">t07</span> outcome off (wrong decision or failed check) · latest run per test case</p>`+grids:''}${files.length?`<details class="live-details"><summary>Show raw rows</summary><table class="live-table"><thead><tr><th>Run</th><th>Rows</th><th>Hard checks passed</th><th>Failed</th><th>Errors</th><th>Last row</th></tr></thead><tbody>${files.map(f=>`<tr class="${Date.now()-f.last<ACTIVE_MS?'live-active':''}"><td>${name(f.file)}</td><td>${f.rows}</td><td>${f.passed}</td><td>${f.failed}</td><td>${f.errors}</td><td>${ago(f.last)}</td></tr>`).join('')}</tbody></table>`
+  :'<p>No new rows yet. Use <strong>▶ Replay a run</strong> to watch a recorded run, or start a run in upshift (for example <code>python demo_e2e.py --break u3 --tag try1</code>); each test case appears here as soon as it finishes.</p>'}
  ${live.rows.length?`<h3>Latest rows</h3><table class="live-table"><thead><tr><th>Input</th><th>Run</th><th>Result</th><th>Hard checks</th><th>Score</th><th>File</th></tr></thead><tbody>${live.rows.slice(-40).reverse().map(r=>`<tr><td>${esc(r.input_id??'')}</td><td>${esc(r.run??'')}</td><td>${esc(r.error?`error: ${r.error}`:r.label??'')}</td><td>${checks(r)}</td><td>${typeof r.score==='number'?r.score.toFixed(2):'—'}</td><td>${name(r.file)}</td></tr>`).join('')}</tbody></table>`:''}${files.length?'</details>':''}
  ${currentReport?'<p class="provider">Reports change only when a run finishes writing them. <button class="button" id="reload-report">Reload report</button></p>':''}
  </div>`;

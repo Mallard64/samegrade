@@ -2,10 +2,10 @@
 
 A 2-minute demo of a real model migration: gpt-4 retires Oct 23, 2026; the support agent moves to gpt-5.6-sol.
 upshift finds the one step and the one prompt line the new model broke, writes a 1-line fix, and proves it on
-tickets the fixer never saw. Everything replays from cache, offline.
+test cases the fixer never saw. Everything replays from cache, offline.
 
 **What's real and what isn't.** The model outputs, costs and token counts are real recorded runs. The 36 support
-tickets are hand-written, with hand-written expected outcomes. Nothing was planted in this migration: the
+test cases are hand-written, with hand-written expected outcomes. Nothing was planted in this migration: the
 problem is gpt-5.6-sol's own behavior. The step-finder accuracy figure (34/39) comes from a separate
 **practice test with planted bugs**, and the dashboard labels it that way.
 
@@ -61,7 +61,7 @@ laptop dies, `docs/demo/` has the four slide screenshots and the terminal transc
 what broke. We took a 4-step support agent and changed only the model."
 
 **0:15 · Start `python demo.py --demo` in the terminal.**
-"Same prompts, same tools, same tickets, 3 runs each. On gpt-5.6-sol, 4 of 24 tickets got worse than gpt-4, and
+"Same prompts, same tools, same test cases, 3 runs each. On gpt-5.6-sol, 4 of 24 test cases got worse than gpt-4, and
 gpt-4 gave the same answer every run, so it isn't noise. The reply stops telling customers their refund takes
 5 to 7 business days."
 
@@ -72,11 +72,11 @@ the new model on that step alone breaks it again on 2 of 4. That's proof, not a 
 **0:55 · Stages 3 and 4.**
 "Which line? Remove each line of the tone prompt. Only line 3, 'must not promise anything beyond the decision', fixes
 it. The new model reads the refund timeline as an extra promise and deletes it. The fix rewrites that one line, and
-it was written from these 4 tickets only."
+it was written from these 4 test cases only."
 
 **1:10 · Back to slide 1.**
-"Then the test that matters: 12 tickets the fix never saw. 3 broke before, 0 after. Cost per 1,000 tickets goes
-from $39 to $7.84, 80% lower, with the same pass rate. Type in your own volume: at 100,000 tickets a month that's
+"Then the test that matters: 12 test cases the fix never saw. 3 broke before, 0 after. Cost per 1,000 test cases goes
+from $39 to $7.84, 80% lower, with the same pass rate. Type in your own volume: at 100,000 test cases a month that's
 about $3,100 a month."
 
 **1:30 · Slide 2 (Every model we tried).**
@@ -84,8 +84,8 @@ about $3,100 a month."
 something. But step by step, some are good enough."
 
 **1:40 · Slide 3 (Cheapest safe choice + fixes).**
-"gpt-5.6-luna can do three steps and a free local Llama can do tone. It first broke a ticket with a lowercase order
-ID; one line fixed that, and it passed 8 new tickets at 31 cents per 1,000. That's a small test, so today we
+"gpt-5.6-luna can do three steps and a free local Llama can do tone. It first broke a test case with a lowercase order
+ID; one line fixed that, and it passed 8 new test cases at 31 cents per 1,000. That's a small test, so today we
 recommend sol plus the tone fix."
 
 **1:50 · Slide 4 (The pull request).**
@@ -99,10 +99,10 @@ engineer. We investigate; you decide."
 
 | Shows | Comes from | Doesn't claim |
 |---|---|---|
-| Tickets that got worse 7 → 0 of 36; later fresh tests 0 of 12 and 0 of 8 | `model_only.py`, `model_pool.py`, `mix_retest.py`; 3 runs per ticket | Results on real customer traffic |
-| Accuracy 97.2% → 97.2% replies passing every check (79.6% without the fix) | All 108 runs (36 tickets × 3) | Quality on real customer traffic |
-| $39.32 → $7.84 per 1,000 tickets (−80%) | Measured tokens per step × list prices in `config/prices.yml` (OpenAI pricing page, checked Oct 8) | Infra, engineering or caching costs. Model cost only. |
-| Monthly savings | The viewer's own volume × the measured cost per ticket | The default 100,000/month is an assumption, labelled on the page |
+| Test cases that got worse 7 → 0 of 36; later fresh tests 0 of 12 and 0 of 8 | `model_only.py`, `model_pool.py`, `mix_retest.py`; 3 runs per test case | Results on real customer traffic |
+| Accuracy 97.2% → 97.2% replies passing every check (79.6% without the fix) | All 108 runs (36 test cases × 3) | Quality on real customer traffic |
+| $39.32 → $7.84 per 1,000 test cases (−80%) | Measured tokens per step × list prices in `config/prices.yml` (OpenAI pricing page, checked Oct 8) | Infra, engineering or caching costs. Model cost only. |
+| Monthly savings | The viewer's own volume × the measured cost per test case | The default 100,000/month is an assumption, labelled on the page |
 
 ### Slide 2 · Every model we tried (`#models`)
 ![Slide 2: every model](docs/demo/slide-2-models.png)
@@ -110,7 +110,7 @@ engineer. We investigate; you decide."
 | Shows | Comes from |
 |---|---|
 | Cost per step for every model (dollars, or tokens for open-source models on your own computer) | Real token counts from each model's runs × `config/prices.yml` |
-| "Got worse alone" on 24 practice · 12 hard · 12 fresh tickets | Each model ran the whole agent with no prompt changes, 3 runs per ticket, vs gpt-4 |
+| "Got worse alone" on 24 practice · 12 hard · 12 fresh test cases | Each model ran the whole agent with no prompt changes, 3 runs per test case, vs gpt-4 |
 | ✓ on the cheapest model that passed each step | The per-step test on slide 3 |
 
 ### Slide 3 · Cheapest safe choice + fixes (`#choice`), for the engineer
@@ -120,8 +120,8 @@ engineer. We investigate; you decide."
 |---|---|
 | Per-step ladder: each step tried cheapest first until nothing got worse | `model_pool.py` (gpt-5.6-sol + fix runs every other step) |
 | Recommended: sol + tone fix. gpt-4 back at tone fixes 4/4; removing tone line 3 fixes 4/4 | `model_only.py`, 3 runs per experiment |
-| Cheapest option: luna + local Llama 3.1 8B, $0.31 per 1,000 in API calls. First failed t42 (lowercase ID), passed 8 new tickets after a one-line classify fix | `model_pool.py`, `mix_retest.py`. Small test; running Llama yourself isn't priced |
-| Step-finder accuracy 34/39 exact, 0 wrong | **Practice test with planted bugs** (`reports/agent_bench/RESULTS.md`), numbers from tickets it wasn't tuned on |
+| Cheapest option: luna + local Llama 3.1 8B, $0.31 per 1,000 in API calls. First failed t42 (lowercase ID), passed 8 new test cases after a one-line classify fix | `model_pool.py`, `mix_retest.py`. Small test; running Llama yourself isn't priced |
+| Step-finder accuracy 34/39 exact, 0 wrong | **Practice test with planted bugs** (`reports/agent_bench/RESULTS.md`), numbers from test cases it wasn't tuned on |
 
 The reverse check on the tone step is 2/4, not 4/4: on t21 and t24 the new model's tone step only drops the timeline
 when the new model also wrote the draft. Say so if asked.
@@ -146,23 +146,23 @@ front of people, close PR #1 first (`gh pr close 1 --repo Mallard64/customer-sup
 ## Likely questions
 
 - **"Is the problem real?"** Yes. Only the model changed (plus the forced sampling default). gpt-4 failed the
-  timeline check 0 of 3 times on every one of those tickets.
-- **"Are the tickets real customers?"** No. They're 36 hand-written tickets with expected outcomes. The model behavior
+  timeline check 0 of 3 times on every one of those test cases.
+- **"Are the test cases real customers?"** No. They're 36 hand-written test cases with expected outcomes. The model behavior
   on them is real.
-- **"How do you know the fix generalizes?"** It was written from 4 practice tickets and checked once on 12 fresh test tickets
+- **"How do you know the fix generalizes?"** It was written from 4 practice test cases and checked once on 12 fresh test test cases
   it never saw: 3 → 0 got worse. That's a small sample. The next step is a design partner's real traffic.
-- **"Why not just use the cheapest model everywhere?"** We tried, step by step. The cheap mix broke a fresh test ticket
+- **"Why not just use the cheapest model everywhere?"** We tried, step by step. The cheap mix broke a fresh test test case
   (t33: tone step returned non-JSON), so it isn't recommended.
 
 ## Bigger model list
 
 We also tried 7 cheaper models: 4 low-cost OpenAI models and 3 open-source models running on a laptop through
-Ollama. Each one, used alone for the whole agent, made some tickets worse than gpt-4. One step at a time worked
+Ollama. Each one, used alone for the whole agent, made some test cases worse than gpt-4. One step at a time worked
 better: gpt-5.6-luna handled classify, decide and draft, and the open-source Llama 3.1 8B handled tone.
 
-That mix first failed one fresh ticket (t42), because luna ignored order IDs typed in lowercase ("a1005"). After a
-one-line fix to the classify prompt, the mix passed 8 brand-new test tickets (0 got worse), at **$0.31 per 1,000
-tickets** in API calls plus the cost of running Llama on your own hardware (not measured yet).
+That mix first failed one fresh test case (t42), because luna ignored order IDs typed in lowercase ("a1005"). After a
+one-line fix to the classify prompt, the mix passed 8 brand-new test test cases (0 got worse), at **$0.31 per 1,000
+test cases** in API calls plus the cost of running Llama on your own hardware (not measured yet).
 
-Eight tickets is a small test, chosen to save cost. Treat the mix as a promising cheaper option. The recommendation
+Eight test cases is a small test, chosen to save cost. Treat the mix as a promising cheaper option. The recommendation
 stays gpt-5.6-sol + the 1-line fix until the mix passes a bigger test and the self-hosted cost is measured.

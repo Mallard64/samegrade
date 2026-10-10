@@ -12,14 +12,17 @@ HERE = Path(__file__).resolve().parent.parent
 DATA = json.loads((HERE / "reports" / "demo" / "results.json").read_text())
 DEMO = DATA["demo"]
 TARGET = {"prompts_dir": "prompts", "config_file": "config.yml"}
-OLD = DEMO["patch"]["edits"][0]["old"]
+EDIT = DEMO["recommended"]["edits"][0]
+OLD = EDIT["old"]
+CONFIG = "".join(f"  {st}:\n    model: gpt-4\n    temperature: 0\n" for st in ("classify", "decide", "draft", "tone"))
 
 
-def app_repo(tmp, tone_line=OLD):
+def app_repo(tmp, line=OLD):
     d = Path(tmp)
     (d / "prompts").mkdir()
-    (d / "prompts" / "tone.txt").write_text(f"line one\nline two\n{tone_line}\nline four\n")
-    (d / "config.yml").write_text("steps:\n  tone:\n    model: gpt-4\n    temperature: 0\n")
+    lines = ["line one", "line two", "line three", line, "line five"]
+    (d / "prompts" / "classify.txt").write_text("\n".join(lines) + "\n")
+    (d / "config.yml").write_text("steps:\n" + CONFIG)
     return d
 
 
@@ -36,25 +39,30 @@ class Plan(unittest.TestCase):
         applied, _ = O.plan([{"id": "line0", "decision": "edited", "text": "  Keep refund timelines.  "}], DEMO)
         self.assertEqual(applied[0]["apply"], "Keep refund timelines.")
 
-    def test_edited_model_change_needs_a_model_name(self):
-        applied, _ = O.plan([{"id": "model", "decision": "edited", "text": "model: gpt-5.6-terra  temperature: default"}], DEMO)
-        self.assertEqual(applied[0]["apply"], "gpt-5.6-terra")
+    def test_edited_model_change_overrides_listed_steps_only(self):
+        applied, _ = O.plan([{"id": "model", "decision": "edited", "text": "tone: gpt-5.6-terra"}], DEMO)
+        self.assertEqual(applied[0]["apply"]["tone"], "gpt-5.6-terra")
+        self.assertEqual(applied[0]["apply"]["classify"], DEMO["recommended"]["assignment"]["classify"])
         with self.assertRaises(ValueError):
             O.plan([{"id": "model", "decision": "edited", "text": "use the cheaper one"}], DEMO)
 
 
 class Apply(unittest.TestCase):
-    def test_model_swap_and_prompt_line(self):
+    def test_per_step_models_and_prompt_line(self):
         with tempfile.TemporaryDirectory() as t:
             d = app_repo(t)
             applied, _ = O.plan([{"id": "model", "decision": "accepted"}, {"id": "line0", "decision": "accepted"}], DEMO)
             O.apply(d, TARGET, applied)
-            self.assertEqual((d / "config.yml").read_text(), "steps:\n  tone:\n    model: gpt-5.6-sol\n")
-            self.assertEqual((d / "prompts" / "tone.txt").read_text().split("\n")[2], DEMO["patch"]["edits"][0]["new"])
+            cfg = (d / "config.yml").read_text()
+            for step, model in DEMO["recommended"]["assignment"].items():
+                self.assertIn(f"  {step}:\n    model: {model}\n", cfg)
+            # models that reject temperature lose it; the local model keeps temperature 0
+            self.assertEqual(cfg.count("temperature"), len(DEMO["recommended"]["self_hosted_steps"]))
+            self.assertEqual((d / "prompts" / "classify.txt").read_text().split("\n")[3], EDIT["new"])
 
     def test_refuses_a_line_that_changed_since_testing(self):
         with tempfile.TemporaryDirectory() as t:
-            d = app_repo(t, tone_line="Someone already rewrote this line.")
+            d = app_repo(t, line="Someone already rewrote this line.")
             applied, _ = O.plan([{"id": "line0", "decision": "accepted"}], DEMO)
             with self.assertRaisesRegex(RuntimeError, "has changed"):
                 O.apply(d, TARGET, applied)
