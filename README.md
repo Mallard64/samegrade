@@ -1,112 +1,67 @@
 # upshift
 
-**Move an LLM pipeline off a retiring model, and prove what broke.**
+**Switch your AI app to a newer model without breaking it, and get proof of what changed.**
 
-`gpt-4` and `gpt-3.5-turbo` shut down on **Oct 23, 2026**. Swapping the model name is the easy part. Prompts that worked on the old model can quietly fail on the new one. upshift replays your real test cases on the old and new models, finds *which step* and *which prompt line* broke, ships the smallest fix, and re-runs everything to prove the fix worked. A person reviews each change and decides.
+🎥 **Demo video (2–3 min): https://streamable.com/osodhd**
 
-| Question | How upshift answers it |
-|---|---|
-| **Where** did it break? | **Step-finder.** In a multi-step agent, swap the model back one step at a time. If putting the old model on step *k* makes the failures go away, step *k* is causal. |
-| **What** broke? | **Line-finder.** Remove or neutralize each prompt line on the new model and re-run. Lines are ranked by their measured effect, not by a guess. |
-| **Is it really broken?** | A test case only counts as worse when it fails beyond the old model's own run-to-run noise (3 runs each). |
-| **What's the fix?** | A minimal diff to the lines that caused it, not a rewrite of the prompt. Each change is accepted, edited or rejected on its own. |
-| **Does the fix hold?** | The full suite re-runs, including test cases the fixer never saw. |
+## What it is
 
-Other tools rewrite the whole prompt and score the app end to end. upshift's claim is narrower: it proves which step and which lines broke, and changes only those.
+AI apps run on a specific model, like GPT-4. Those models get retired. OpenAI is shutting down `gpt-4` and `gpt-3.5-turbo` on **Oct 23, 2026**, so every app that uses them has to move to a newer model.
 
-## What the demo shows
+The risky part: the instructions you wrote for the old model can quietly work worse on the new one. Nothing crashes. Answers just get a little wrong, and nobody notices.
 
-The demo app is a 4-step support agent (`classify → decide → draft → tone`) with fake, deterministic tools, so any difference between runs comes from the models. Every number on the slides uses one standard set of 36 hand-written test cases (24 practice + 12 hard), 3 runs each, all real recorded model outputs.
+upshift checks for that. It runs the same test cases on the old and new model, finds exactly what got worse, fixes only that, and shows the before and after. A person reviews every change before anything is applied.
 
-- **gpt-5.6-sol as a drop-in** broke the **tone** step: it deleted the "5–7 business days" refund timeline from replies. Putting gpt-4 back on `tone` alone repaired the broken test cases; no other step did. One tone line was the cause, and a one-line edit fixed it.
-- **Recommended: the cheapest model that passes each step.** `classify`, `decide` and `draft` on `gpt-5.6-luna`, `tone` on a local `llama3.1:8b`, plus two prompt lines (classify accepts lowercase order IDs; tone keeps the refund timeline; the mix was tested with both). **$39.32 → $0.33 per 1,000 test cases** in API calls. Against gpt-4 on the 36 test cases: 0 got worse. Separately, gpt-4 was wrong on t28 and t33 in all 3 runs against the expected answer; the mix gets t28 right and t33 wrong. Those gains come from gpt-4's own mistakes, and the gold labels haven't been reviewed by a teammate. A test case counts as correct when most of its 3 runs match the expected category, order ID, decision and reply content.
-- **Known loss:** on 12 newer test cases run afterwards, t58 got worse. The decision is right (deny a return after 30 days) but the reply also says a refund will be processed: the tone line keeps refund details and the local tone model added them to a denial. A narrower line fixed t58 but made refund replies drop the amount and timeline, so it isn't included. The local model's cost is shown as tokens (about 378 per test case), not dollars.
-- **Safer, costlier fallback:** `gpt-5.6-sol` on every step plus the tone fix, $7.84 per 1,000 test cases, On the same 36: 0 got worse (7 without the fix). gpt-4 was wrong on t28 and t33 and sol gets both right, which is gpt-4's mistake rather than a migration gain. Hard checks passed 105 of 108 runs for both models (t22 fails the refund-timeline check every run on both).
-- **Step-finder benchmark** (9 planted breaks, 39 localized test cases): 34/39 exact on held-out breaks; 5 partially right (2 missed a step, 3 named an extra one). After a narrowing fix, 37/39 exact. An LLM simply asked "which step failed?" also named a planted step 39/39, so our edge is the proof and multi-step causes, not guessing accuracy. See `reports/agent_bench/RESULTS.md`.
+## Who it's for
 
-Prices live in `config/prices.yml` (only values read from the pricing page on the date given; unknown prices show tokens instead of dollars).
-
-## Quick start (no API key, no cost)
-
-Everything in `results/` is a cache of real model calls, so these replay offline.
-
-Requirements: Python 3.11+ and Node.js 18+ (the dashboard needs no `npm install`).
-
-```bash
-git clone <this repo> upshift && cd upshift
-python3 -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-cp .env.example .env        # only needed for new model calls
-```
-
-| Command | What it does |
-|---|---|
-| `cd dashboard && npm start` | Dashboard at http://localhost:4173: the demo deck, every report, live rows from `results/` |
-| `python demo.py --demo` | Offline narrated replay (about 2 minutes) plus the dashboard: step-finder → line-finder → fix → recommendation |
-| `python demo_e2e.py --break u3` | The same pipeline on one planted break |
-| `python migrate_agent.py --candidate gpt-5.6-sol --candidate-config '{}'` | Full agent migration report, gpt-4 → gpt-5.6-sol |
-| `python live_run.py --option cheap --sets fresh3` | **Live, paid**: real model calls (what the dashboard's Run live button starts) |
-| `python results_demo.py` | Rebuild `reports/demo/results.json` (the deck's data) from cached runs |
-| `python export_bench.py` | Dashboard reports for every planted break |
-| `python -m unittest discover tests` | Unit tests (no key, no network) |
-
-New model calls need a key: `set -a; source .env; set +a` (plain `source` doesn't export to subprocesses). Never commit keys.
-
-## The dashboard
-
-`dashboard/` is plain HTML, CSS and JavaScript with no build step.
-
-- **Demo deck (4 slides):** the result, every model tried, the cheapest safe choice with its fixes, and the pull request. Each change in the PR is accepted, edited or rejected separately, and **Create pull request** opens a real PR in the app's own repo (`config/target_repo.yml`) only after you've decided every change. To check it without publishing, send `"dry_run": true` to `open_pr.py`: it clones the repo, applies the changes and prints the diff, and pushes nothing.
-- **Migration reports:** a model comparison, the step and line that broke, before/after evidence, and the proposed diff. Agent reports add a pipeline view where you click any test case to see each step's input, output and the step-swap experiments.
-- **Run live (costs money):** on slide 1, **Run live** calls the real models for the selected option on the test cases you choose (or one test case from its dialog), after showing a cost estimate. Results fill in on a separate screen as they arrive, next to gpt-4's recorded answers. It needs `OPENAI_API_KEY` in the server's environment or in `.env` (the shipped `.env` has it blank) (and Ollama for the cheap mix's tone step), stops at a $2 cap per run (`LIVE_MAX_USD`, at most $5), and writes a new `results/agent__live-*.jsonl` file without touching recorded runs.
-- **Replay a run** only plays back a saved results file at its recorded pace. It makes no model calls and works offline. The "Live · idle" label in the header just means the page is connected to the local server watching `results/`.
-
-## Other things it can migrate
-
-The same loop works on a single prompt. The NER and text-classification examples from [explosion/spacy-llm](https://github.com/explosion/spacy-llm) (pinned at `spacy-llm==0.7.4`, configs copied unchanged into `upstream/`) are the worked example:
-
-```bash
-python record_baseline.py --dry-run          # show the exact prompts, no API calls
-python migrate.py --task ner --candidates gpt-5.6-sol gpt-5.6-terra --model-config '{}'
-```
-
-`migrate.py` records candidates, ranks them, traces each regression to a prompt component with sentence-level ablation, has an LLM propose a fix, re-runs the suite, and writes `reports/migration_ner/` (`PR.md`, `pr.diff`, `migration.json`). It does **not** open a PR. To replay it offline without billing anything, use a placeholder key and an unreachable API base:
-
-```bash
-OPENAI_API_KEY=offline python migrate.py --task ner --candidates gpt-5.6-sol gpt-5.6-terra --model-config '{}' --api-base http://127.0.0.1:9/v1
-```
-
-Hard checks (`checks.py`) each enforce one prompt instruction, so a failure points at a line. `compare.py` gives each input one verdict: REGRESSED, IMPROVED, CHANGED (different but not worse; optionally reviewed by the Claude judge in `judge.py`) or SAME. Comparing the baseline against itself finds 0 regressions, so the method doesn't raise false alarms.
+Teams that built something on an AI model that is being retired, and need to move to a new one safely. If you'd otherwise be switching the model and hoping nothing broke, this is for you.
 
 ## How it works
 
-1. **Replay** the same test cases on the old model and on each candidate, 3 runs each. Every call is cached (`results/`), so re-runs only do missing work.
-2. **Score** with hard checks and gold labels (`checks.py`, `compare.py`).
-3. **Find the step** (`stepfinder.py`, `stepswap.py`): new model everywhere except step *k*; if it passes again, step *k* is causal. Pairs are tried when no single step explains it.
-4. **Find the lines** (`linefinder.py`, `ablation.py`): ablate each line of the guilty prompt on the new model and rank by measured effect.
-5. **Fix** only that component (an LLM proposes the edit), then re-run everything, including test cases the fixer never saw.
-6. **Choose models per step** (`assign.py`, `model_pool.py`, `mix_retest.py`): the cheapest model that passes each step, then check that the mix still passes end to end.
-7. **Write the PR** (`pr_report.py`, `open_pr.py`): where, what, proof, fix, with the old model's noise floor.
+Many AI apps work in steps, like an assembly line. Our demo is a customer support assistant with four: sort the customer request, decide what to do, write the reply, check the tone.
 
-## Repo map
+1. **Compare.** Run the same test test cases through the old and the new model, three times each, so normal ups and downs don't look like problems.
+2. **Find the step.** Put the old model back on one step at a time. If the problem disappears, that step is the culprit.
+3. **Find the line.** Inside that step's instructions, remove one line at a time to see which line caused it.
+4. **Fix just that.** Suggest the smallest possible edit, then re-run everything to check it worked.
+5. **Hand it to a person.** A report shows what broke, where, the proof, and the fix. You accept, edit or reject each change.
 
-| Path | Purpose |
+Other tools rewrite your whole set of instructions and hope for the best. upshift changes only the part that broke, and shows why.
+
+## What we found in the demo
+
+We tested the support assistant on 36 sample test cases, three runs each, using real recorded model answers.
+
+- The new model, `gpt-5.6-sol`, dropped the "5–7 business days" refund timeline from replies. It was the final tone-checking step, and one line in its instructions. A one-line edit fixed it.
+- Picking the cheapest model that works for each step cut the cost from **$39.32 to $0.33 per 1,000 test cases**, with no test case handled worse than before.
+- To test the "find the step" part, we planted 9 known problems. upshift named the right step every time it named one (34 of 39 exactly right). Details are in `reports/agent_bench/RESULTS.md`.
+
+## Try it (free, no account needed)
+
+Every model answer we used is saved in `results/`, so everything replays offline. You need Python 3.11+ and Node 18+.
+
+```bash
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+cd dashboard && npm start          # opens the dashboard at http://localhost:4173
+python demo.py --demo              # a 2-minute narrated replay
+```
+
+Running new model calls needs an OpenAI key in `.env` (it ships blank). Never commit your key.
+
+## Where things are
+
+| Path | What's there |
 |---|---|
-| `support_agent.py` | The 4-step demo agent, its prompts and cached runner |
-| `stepfinder.py`, `linefinder.py`, `ablation.py` | Find the step, then the line |
-| `migrate_agent.py`, `migrate.py` | Migration reports for the agent and for a single NER prompt |
-| `assign.py`, `model_pool.py`, `mix_retest.py`, `model_only.py` | Cheapest-model-per-step search and re-tests |
-| `results_demo.py`, `dashboard_export.py`, `export_bench.py` | Build the dashboard's data from cached runs |
-| `open_pr.py` | Opens the reviewed changes as a PR in the app repo |
-| `inputs/` | Hand-written test cases with expected outcomes |
-| `results/` | Cache of real model calls. **Never edit or delete the gpt-4 files.** They can't be regenerated after Oct 23. |
-| `reports/` | Generated reports; `reports/SCHEMA.md` documents `migration.json` |
-| `dashboard/` | The web UI |
-| `tests/` | Unit tests |
+| `dashboard/` | The web app: slides, reports, live runs |
+| `support_agent.py` | The demo support assistant |
+| `stepfinder.py`, `linefinder.py` | Find the step, then the line |
+| `migrate_agent.py`, `migrate.py` | Build the report (also works on a single-prompt example from [spacy-llm](https://github.com/explosion/spacy-llm)) |
+| `results/` | Saved model answers. **Don't delete the gpt-4 files**: they can't be recreated after Oct 23. |
+| `reports/` | Generated reports |
 
-## Limits, stated plainly
+## Honest limits
 
-- Test cases are hand-written. Model behavior is real; the inputs are synthetic.
-- 3 runs per test case is enough to show the method, not a noise-robust measurement.
-- One standard set of 36 test cases can't establish a recommendation on its own; the extra runs on newer test cases found a failure (t58) that the 36 didn't.
-- upshift investigates; an engineer decides. Nothing is published without an explicit click.
+- The test test cases are hand-written. The model answers are real.
+- Three runs per test case shows the method works; it isn't a large-scale study.
+- upshift investigates. An engineer makes the final decision.
