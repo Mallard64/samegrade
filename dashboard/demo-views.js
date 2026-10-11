@@ -360,12 +360,13 @@ function slideChoice(data) {
     `<span class="sl-chip ${t.passed ? 'ok' : 'no'}">${esc(t.model)} ${t.passed ? '✓' : `✗ ${t.regressed}`}</span>`).join('')}</li>`).join('')}</ol>`;
   const fbResults = `${data.candidates[0].summary.verdict_counts_after_fix?.REGRESSED} of ${d.confidence.dev_tickets + d.confidence.heldout_tickets}`;
   // The step-finder's proof: with gpt-5.6-sol everywhere, put gpt-4 back on one step (then one prompt line) at a time.
-  const broken = d.per_step[0]?.repair?.of ?? 0;
-  const bar = (n, of) => `<span class="sl-swap-bar" aria-hidden="true"><i style="width:${of ? n / of * 100 : 0}%"></i></span>`;
-  const proof = `<div class="sl-ladder-box sl-proof"><p class="sl-label">Which step broke? gpt-5.6-sol on every step broke ${broken} practice test cases. Put gpt-4 back on one step at a time:</p>
-    <ol class="sl-swap">${d.per_step.map(x => `<li class="${x.guilty ? 'hit' : ''}"><span class="dm-mono sl-step">${esc(x.step)}</span>${bar(x.repair.n, x.repair.of)}<span class="sl-swap-n">${x.repair.n} of ${x.repair.of} fixed</span></li>`).join('')}</ol>
-    ${d.lines?.results?.length ? `<p class="sl-label">Which line? In the <span class="dm-mono">${esc(d.lines.step)}</span> prompt, remove one line at a time:</p>
-    <ol class="sl-swap">${d.lines.results.map(x => `<li class="${x.repairs ? 'hit' : ''}"><span class="sl-swap-line" title="${esc(x.line)}">${x.line_index + 1}. ${esc(x.line.length > 60 ? x.line.slice(0, 57) + '…' : x.line)}</span>${bar(x.repairs, x.of)}<span class="sl-swap-n">${x.repairs} of ${x.of} fixed</span></li>`).join('')}</ol>` : ''}</div>`;
+  const all = d.confidence.dev_tickets, broken = d.per_step[0]?.repair?.of ?? 0;   // the swap experiments ran on the practice set
+  const bar = (left, of) => `<span class="sl-swap-bar" aria-hidden="true"><i style="width:${of ? left / of * 100 : 0}%"></i></span>`;
+  const row = (label, x, cls) => { const left = x.of - x.n; return `<li class="${left === 0 ? 'hit' : ''}">${label}${bar(left, all)}<span class="sl-swap-n">${left} of ${all} still broken</span></li>`; };
+  const proof = `<div class="sl-ladder-box sl-proof"><p class="sl-label">gpt-5.6-sol on every step broke ${broken} of ${all} practice test cases. Put gpt-4 back on one step at a time:</p>
+    <ol class="sl-swap">${d.per_step.map(x => row(`<span class="dm-mono sl-step">${esc(x.step)}</span>`, {n: x.repair.n, of: x.repair.of})).join('')}</ol>
+    ${d.lines?.results?.length ? `<p class="sl-label">Then, in the <span class="dm-mono">${esc(d.lines.step)}</span> prompt, remove one line at a time:</p>
+    <ol class="sl-swap">${d.lines.results.map(x => row(`<span class="sl-swap-line" title="${esc(x.line)}">${x.line_index + 1}. ${esc(x.line.length > 60 ? x.line.slice(0, 57) + '…' : x.line)}</span>`, {n: x.repairs, of: x.of})).join('')}</ol>` : ''}</div>`;
   const main = !r ? '' : `
     <section class="sl-option${demoState.choice === 'cheap' ? ' sl-option-rec' : ''}" aria-labelledby="sl-a">
       <span class="dm-pill accepted">Recommended · cheapest</span>
