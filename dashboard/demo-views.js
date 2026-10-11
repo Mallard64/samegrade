@@ -45,7 +45,10 @@ function slideResults(data) {
   // (category, order ID, decision and required reply content).
   const key = cheap ? 'cheap_fix' : 'sol_fix', cs = d.cases.filter(x => x[key] && x.old);
   const right = x => x && x.correct * 2 > x.of;
-  const oldRight = cs.filter(x => right(x.old)).length, newRight = cs.filter(x => right(x[key])).length;
+  const gained = cs.filter(x => !right(x.old) && right(x[key])).map(x => x.id);
+  const runs = cs.reduce((n, x) => n + x.old.of, 0), oldChk = cs.reduce((n, x) => n + x.old.passed, 0), newChk = cs.reduce((n, x) => n + x[key].passed, 0);
+  const worseN = cheap ? d.mix_std.regressed.length : data.candidates[0].summary.verdict_counts_after_fix?.REGRESSED ?? cs.filter(x => right(x.old) && !right(x[key])).length;
+  const worseOf = cheap ? d.mix_std.of : d.confidence.dev_tickets + d.confidence.heldout_tickets;
   const vol = demoState.volume ?? d.monthly_requests_default;
   return `
   <p class="sl-kicker">${esc(d.pair.old)} → ${cheap ? 'cheaper models' : esc(d.pair.new)} · 4-step support agent · gpt-4 shuts down Oct 23</p>
@@ -53,9 +56,9 @@ function slideResults(data) {
   <h2 class="sl-title" tabindex="-1">${cheap ? 'Move every step to a cheaper model, with two one-line prompt fixes' : `Switch to <span class="dm-mono">${esc(rec.assignment.classify)}</span> on every step with a one-line prompt fix`}</h2>
   <div class="sl-kpis">
     <div class="sl-kpi">
-      <span class="sl-label">Test cases answered correctly</span>
-      <strong>${oldRight} of ${cs.length} → ${newRight} of ${cs.length}</strong>
-      <small>gpt-4 → ${cheap ? 'the cheapest mix' : 'gpt-5.6-sol + fix'}</small>
+      <span class="sl-label">Test cases that got worse than gpt-4</span>
+      <strong>${worseN} of ${worseOf}</strong>
+      <small>${gained.length ? `gpt-4 was wrong on ${gained.map(esc).join(' and ')} in all 3 runs; the new setup got ${gained.length === 1 ? 'it' : 'them'} right (a gain from gpt-4's own mistakes, not from the migration). ` : ''}Hard checks passed: ${oldChk} of ${runs} runs → ${newChk} of ${runs}.</small>
     </div>
     <div class="sl-kpi sl-kpi-good">
       <span class="sl-label">Model cost per 1,000 test cases</span>
