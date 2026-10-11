@@ -346,7 +346,8 @@ def main():
             if not rows:
                 return None
             ok = sum(bool(r.get("passed_all")) for r in rows)
-            return {"passed": ok, "of": len(rows), "output": describe(rows[0]),
+            right = sum(r.get("gold_score", {}).get("score") == 1.0 for r in rows)   # all of: category, order ID, decision, reply content
+            return {"passed": ok, "correct": right, "of": len(rows), "output": describe(rows[0]),
                     "failed": sorted({k for r in rows for k, v in (r.get("checks") or {}).items() if v is False})[:4]}
         cases = []
         for split, setname, sfx, mixf in [("dev", "agent", "", "agent__pool-mix-fixed.jsonl"),

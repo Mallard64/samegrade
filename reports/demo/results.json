@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "_note": "Real runs of the 4-step support agent (clean prompts, nothing planted). Test cases are hand-written (synthetic); model behavior is real. cost_per_1k_calls_usd = per 1k test case runs (4 calls).",
-  "run_id": "2026-10-10T23:52:09Z",
+  "run_id": "2026-10-11T01:40:53Z",
   "repo": {
     "name": "upshift support agent (demo)",
     "call_site": "support_agent.py: PROMPTS['tone']"
@@ -2804,12 +2804,14 @@
         "note": null,
         "old": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[refund / refund]\nDear Customer,\n\nWe have processed a refund for your order A1001. The amount of $79.00 will be returned to your original payment method. This decision was made because the item is unused and your return request is within our 30-day return period. Please allow 5-7 business days for the transaction to reflect in your account.\n\nBest Regards,\nThe Support Team",
           "failed": []
         },
         "sol": {
           "passed": 1,
+          "correct": 3,
           "of": 3,
           "output": "[refund / refund]\nYour refund for order A1001 has been approved. The unused earbuds are eligible for a full refund because you requested the return within 30 days of delivery.\n\nThe refund amount is $79.00.\n\nThe Support Team",
           "failed": [
@@ -2818,12 +2820,14 @@
         },
         "sol_fix": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[refund / refund]\nHi,\n\nYour refund for order A1001 has been approved. The unused earbuds are eligible for a full refund because you requested the return within 30 days of delivery.\n\nThe $79.00 refund will go back to your original payment method within 5\u20137 business days.\n\nThe Support Team",
           "failed": []
         },
         "cheap_fix": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[refund / refund]\nYour refund for order A1001 is approved. Since the wireless earbuds are unused and within 30 days of delivery, you\u2019ll receive a full refund of $79.00. It will go back to your original payment method within 5\u20137 business days.\n\nThe Support Team",
           "failed": []
@@ -2842,24 +2846,28 @@
         "note": null,
         "old": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[refund / deny]\nDear Customer,\n\nWe regret to inform you that we cannot process a refund for your wool sweater from order A1002. This is because our policy only allows returns within 30 days of delivery, and it has been 42 days since your item was delivered. We apologize for any inconvenience this may cause.\n\nBest regards,\nThe Support Team",
           "failed": []
         },
         "sol": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[refund / deny]\nWe\u2019re sorry, but we can\u2019t accept the return for order A1002. The sweater was delivered 42 days ago, which is outside our 30-day return window.\n\nThe Support Team",
           "failed": []
         },
         "sol_fix": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[refund / deny]\nWe\u2019re sorry, but we can\u2019t accept the return for the wool sweater from order A1002. It was delivered 42 days ago, which is outside our 30-day return window.\n\nThe Support Team",
           "failed": []
         },
         "cheap_fix": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[refund / deny]\nWe appreciate your feedback regarding the wool sweater from order A1002. Unfortunately, our records show that the order was delivered 42 days ago, which is outside of our 30-day refund window. According to our policy (REFUND-01), returns are only accepted within this timeframe. If you have any further questions or concerns, please don't hesitate to reach out.",
           "failed": []
@@ -2878,24 +2886,28 @@
         "note": null,
         "old": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[refund / deny]\nWe're sorry, but we cannot process a refund for your desk lamp, order A1003. As it was a final-sale item, our policy does not allow for returns or refunds. We apologize for any inconvenience this may cause. \n\nThe Support Team",
           "failed": []
         },
         "sol": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[refund / deny]\nWe\u2019re sorry, but we can\u2019t refund the lamp from order A1003. Clearance items are marked as final sale, so they cannot be returned or refunded.\n\nThe Support Team",
           "failed": []
         },
         "sol_fix": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[refund / deny]\nWe\u2019re sorry, but we can\u2019t refund the lamp from order A1003. Clearance items are marked as final sale, so they cannot be returned or refunded.\n\nThe Support Team",
           "failed": []
         },
         "cheap_fix": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[refund / deny]\nWe understand that you're not satisfied with the desk lamp from order A1003, specifically its color. Unfortunately, as a clearance item, it's marked final sale and cannot be returned or refunded. Please refer to our refund policy for more information on return and refund timelines, including the original payment method being credited within 5-7 business days.",
           "failed": []
@@ -2914,12 +2926,14 @@
         "note": "delivered exactly 30 days ago: inside the window",
         "old": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[refund / refund]\nDear Customer,\n\nWe have processed a refund for your backpack, order A1007. The amount of $65.00 will be returned to your original payment method. This decision was made because the item is unused and your return request is within our 30-day return period. Please allow 5-7 business days for the refund to appear in your account.\n\nBest regards,\nThe Support Team",
           "failed": []
         },
         "sol": {
           "passed": 2,
+          "correct": 3,
           "of": 3,
           "output": "[refund / refund]\nYour return request for order A1007 has been approved. Because the unused backpack was returned within 30 days of delivery, you are eligible for a full refund of $65.00.\n\nThe Support Team",
           "failed": [
@@ -2928,12 +2942,14 @@
         },
         "sol_fix": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[refund / refund]\nYour return request for order A1007 has been approved because the unused backpack is eligible for a full refund within 30 days of delivery.\n\nA refund of $65.00 will go back to your original payment method in 5\u20137 business days.\n\nThe Support Team",
           "failed": []
         },
         "cheap_fix": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[refund / refund]\nYour refund for order A1007 has been approved. You will receive $65.00 back to your original payment method within 5\u20137 business days.\n\nThe Support Team",
           "failed": []
@@ -2952,24 +2968,28 @@
         "note": "delivered 31 days ago: one day outside the window",
         "old": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[refund / deny]\nWe're sorry, but we cannot process a return for your phone case from order A1008. Our policy, REFUND-01, states that returns must be made within 30 days of delivery. As it has been 31 days since your item was delivered, we are unable to accept the return. We appreciate your understanding.\n\nThe Support Team",
           "failed": []
         },
         "sol": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[refund / deny]\nWe\u2019re sorry, but we can\u2019t accept the return for the unopened phone case from order A1008. It was delivered 31 days ago, which is outside our 30-day return window.\n\nThe Support Team",
           "failed": []
         },
         "sol_fix": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[refund / deny]\nWe\u2019re sorry, but we can\u2019t accept the return for the unopened phone case from order A1008. It was delivered 31 days ago, which is outside our 30-day return window.\n\nThe Support Team",
           "failed": []
         },
         "cheap_fix": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[refund / deny]\nWe appreciate your interest in returning the phone case from order A1008. However, our return policy states that returns must be initiated within 30 days of delivery. Since it has been 31 days since delivery, we regret that we cannot accept this return at this time.",
           "failed": []
@@ -2988,24 +3008,28 @@
         "note": null,
         "old": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[damaged / replace]\nWe're sorry to hear about the damaged mugs from your order A1005. We understand how disappointing this can be. As per our policy DAMAGE-02, we will ship a replacement for the damaged mugs at no cost to you. You can expect the replacement to arrive soon. Thank you for your understanding.\n\nThe Support Team",
           "failed": []
         },
         "sol": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[damaged / replace]\nWe\u2019re sorry your mug set arrived damaged. Since the damage to order A1005 was reported within 30 days of delivery, a replacement will ship at no cost.\n\nThe Support Team",
           "failed": []
         },
         "sol_fix": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[damaged / replace]\nWe\u2019re sorry your mug set arrived damaged. Since the damage to order A1005 was reported within 30 days of delivery, a replacement will ship at no cost.\n\nThe Support Team",
           "failed": []
         },
         "cheap_fix": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[damaged / replace]\nWe\u2019re sorry that two mugs in your set arrived smashed. Order A1005 qualifies for a free replacement because the damage was reported within the eligible period. A replacement will ship at no cost. You can expect to receive a refund of the original payment method within 5-7 business days.",
           "failed": []
@@ -3024,24 +3048,28 @@
         "note": "final-sale item, but the damage policy overrides final sale",
         "old": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[damaged / replace]\nWe're sorry to hear about the damaged lamp from your order A1003. We've decided to replace it at no cost to you. This decision is based on the fact that the item arrived damaged within 30 days of delivery. You can expect your replacement lamp to be shipped out soon. \n\nBest regards,\nThe Support Team",
           "failed": []
         },
         "sol": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[damaged / replace]\nWe\u2019ll replace the damaged clearance lamp from order A1003 because the damage was reported within 30 days of delivery. The replacement will ship at no cost.\n\nThe Support Team",
           "failed": []
         },
         "sol_fix": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[damaged / replace]\nWe\u2019re replacing the damaged clearance desk lamp from order A1003 because it was reported within 30 days of delivery. A replacement will ship at no cost.\n\nThe Support Team",
           "failed": []
         },
         "cheap_fix": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[damaged / replace]\nWe\u2019re sorry your clearance lamp from order A1003 arrived with the base cracked. Although it was a final-sale item, the damage was reported within the eligible period, so we\u2019ll send a replacement at no cost. Your original payment will be refunded to the same method within 5-7 business days.",
           "failed": []
@@ -3060,24 +3088,28 @@
         "note": "damage reported 42 days after delivery: warranty team",
         "old": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[damaged / escalate]\nWe're sorry to hear about the issue with your wool sweater, order A1002. As the damage was reported after 30 days of delivery, we need to escalate this to our Quality Assurance Team for further investigation. We can't promise any specific outcome at this stage, but rest assured, they will look into this matter thoroughly. Thank you for your patience.\n\nThe Support Team",
           "failed": []
         },
         "sol": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[damaged / escalate]\nWe\u2019re sorry your sweater developed a hole after only two wears. Since the defect for order A1002 was reported 42 days after delivery, we\u2019ve escalated your case to our warranty team. They will review it and follow up with you.\n\nThe Support Team",
           "failed": []
         },
         "sol_fix": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[damaged / escalate]\nWe\u2019re sorry your sweater developed a hole after only two wears. Since the defect for order A1002 was reported 42 days after delivery, we\u2019ve escalated your case to our warranty team. They will review it and follow up with you.\n\nThe Support Team",
           "failed": []
         },
         "cheap_fix": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[damaged / escalate]\nWe've reviewed your claim for order A1002. Unfortunately, our policy states that damages reported beyond 30 days after delivery are not eligible for a replacement or refund under our DAMAGE-02 policy. We've escalated this to our support team, who will follow up with you regarding the next steps.",
           "failed": []
@@ -3096,24 +3128,28 @@
         "note": null,
         "old": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[shipping / info]\nWe're sorry to hear that your blender (Order A1004) hasn't arrived yet. It's currently 2 days past its estimated delivery date. Could you please confirm if you've received any updates or notifications regarding the delivery? We appreciate your patience and understanding. \n\nThe Support Team",
           "failed": []
         },
         "sol": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[shipping / info]\nWe\u2019re sorry your blender is late. Order A1004 has shipped and is currently 2 days past its estimated delivery date. You can view the latest tracking updates through the tracking link in your shipping confirmation email.\n\nThe Support Team",
           "failed": []
         },
         "sol_fix": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[shipping / info]\nWe\u2019re sorry your blender is late. Order A1004 has shipped and is currently 2 days past its estimated delivery date. You can view the latest tracking updates through the tracking link in your shipping confirmation email.\n\nThe Support Team",
           "failed": []
         },
         "cheap_fix": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[shipping / info]\nSorry to hear that you haven't received your blender yet. Order A1004 was shipped, but it is now 2 days past the estimated delivery date of October 4, 2026. Please use the tracking link in your shipping confirmation email to check the latest delivery update. We apologize for any inconvenience this has caused and will be happy to assist you further.",
           "failed": []
@@ -3132,24 +3168,28 @@
         "note": null,
         "old": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[shipping / replace]\nWe're sorry to hear that your order A1010 hasn't arrived yet. As it's 10 days past its estimated delivery date, we've decided to send you a replacement throw blanket at no additional cost. You should receive a new tracking number soon. Thank you for your patience.\n\nThe Support Team",
           "failed": []
         },
         "sol": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[shipping / replace]\nWe\u2019re sorry your order is delayed. Order A1010 is 10 days past its estimated delivery date, so a replacement throw blanket will ship at no cost.\n\nThe Support Team",
           "failed": []
         },
         "sol_fix": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[shipping / replace]\nWe\u2019re sorry your order is late. Order A1010 is 10 days past its estimated delivery date, so a replacement throw blanket will ship at no cost.\n\nThe Support Team",
           "failed": []
         },
         "cheap_fix": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[shipping / replace]\nWe\u2019re sorry your Throw blanket from order A1010 hasn\u2019t arrived. Since it is 10 days past the estimated delivery date, we\u2019ll send a replacement.",
           "failed": []
@@ -3168,12 +3208,14 @@
         "note": null,
         "old": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[cancel / cancel]\nWe have cancelled your order A1006 for the Desk chair as per your request. The amount of $249.00 will be refunded to your original payment method. Please allow 5-7 business days for the transaction to process. This is due to your order being in processing status when you requested the cancellation. \n\nBest regards,\nThe Support Team",
           "failed": []
         },
         "sol": {
           "passed": 1,
+          "correct": 3,
           "of": 3,
           "output": "[cancel / cancel]\nOrder A1006 has been cancelled because it was still processing. A full refund of $249.00 will be issued.\n\nThe Support Team",
           "failed": [
@@ -3182,12 +3224,14 @@
         },
         "sol_fix": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[cancel / cancel]\nOrder A1006 has been cancelled because it was still processing. A full refund of $249.00 will be returned to your original payment method within 5\u20137 business days.\n\nThe Support Team",
           "failed": []
         },
         "cheap_fix": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[cancel / cancel]\nOrder A1006 has been canceled because it was still processing. A full refund of $249.00 will be sent to your original payment method within 5\u20137 business days.\n\nThe Support Team",
           "failed": []
@@ -3206,24 +3250,28 @@
         "note": "already shipped: cannot cancel",
         "old": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[cancel / deny]\nWe're sorry, but we can't cancel your order A1004 for the blender. The reason is that it has already been shipped. Once an order is shipped, we're unable to cancel it. We appreciate your understanding. \n\nThe Support Team",
           "failed": []
         },
         "sol": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[cancel / deny]\nWe\u2019re unable to cancel order A1004 because it has already shipped. You may return the blender after it is delivered.\n\nThe Support Team",
           "failed": []
         },
         "sol_fix": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[cancel / deny]\nWe\u2019re unable to cancel order A1004 because it has already shipped. You may return the blender after it is delivered.\n\nThe Support Team",
           "failed": []
         },
         "cheap_fix": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[cancel / deny]\nOrder A1004 has already shipped, so it cannot be canceled. You may return the blender after delivery according to our return policy. Please note that you will receive a full refund of your original payment within 5-7 business days once we receive the returned item.",
           "failed": []
@@ -3242,24 +3290,28 @@
         "note": null,
         "old": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[billing / escalate]\nThank you for bringing this to our attention. We're escalating this issue to our Billing Team due to the duplicate charges reported on your order A1001. They will investigate this matter thoroughly and reach out to you with their findings. We appreciate your patience during this process. \n\nBest regards,\nThe Support Team",
           "failed": []
         },
         "sol": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[billing / escalate]\nWe\u2019re escalating the duplicate $79 charge dispute for order A1001 to our Billing Team. They will review the charges and follow up with you. We can\u2019t confirm a refund at this stage.\n\nThe Support Team",
           "failed": []
         },
         "sol_fix": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[billing / escalate]\nWe\u2019re escalating the duplicate $79 charge dispute for order A1001 to our Billing Team. They will review the charges and follow up with you. We can\u2019t confirm a refund at this stage.\n\nThe Support Team",
           "failed": []
         },
         "cheap_fix": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[billing / escalate]\nWe apologize for the inconvenience caused by the duplicate charge on order A1001. Your concern has been escalated to our Billing Team, who will review and follow up with you regarding the two $79 charges. Please note that we will process a refund if the issue is confirmed, which will be returned to your original payment method within 5-7 business days.",
           "failed": []
@@ -3278,24 +3330,28 @@
         "note": "angry; billing must not promise a refund",
         "old": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[billing / escalate]\nWe understand your concern regarding the charge of $79 on order A1001. This issue needs to be handled by our billing team. They will investigate the matter thoroughly and follow up with you. We appreciate your patience and understanding in this matter.\n\nThe Support Team",
           "failed": []
         },
         "sol": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[billing / escalate]\nWe\u2019ve escalated the disputed $79.00 charge on order A1001 to our Billing Team for review.\n\nThe Support Team",
           "failed": []
         },
         "sol_fix": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[billing / escalate]\nWe\u2019ve escalated the disputed $79.00 charge on order A1001 to our Billing Team because extra charges require review. The Billing Team will follow up with you after investigating the charge.\n\nThe Support Team",
           "failed": []
         },
         "cheap_fix": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[billing / escalate]\nYour charge dispute for order A1001 has been escalated to our Billing Team for review. They will follow up with you directly regarding the extra $79 charge. We appreciate your patience as we investigate this matter.",
           "failed": []
@@ -3314,24 +3370,28 @@
         "note": null,
         "old": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[account / info]\nWe understand you're having trouble logging in. Please click on the 'Forgot password' link on the login page. This will guide you through the process of resetting your password. If you continue to have issues, please don't hesitate to contact us again. \n\nThe Support Team",
           "failed": []
         },
         "sol": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[account / info]\nPlease select \u201cForgot password\u201d on the login page and follow the instructions sent to your email to reset your password and regain access.\n\nThe Support Team",
           "failed": []
         },
         "sol_fix": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[account / info]\nPlease select \u201cForgot password\u201d on the login page and follow the instructions sent to your email to reset your password and regain access.\n\nThe Support Team",
           "failed": []
         },
         "cheap_fix": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[account / info]\nWe understand that you're having trouble logging in due to forgotten password. Please use the 'Forgot password' link on the login page, which will guide you through a secure reset process. Once completed, follow the instructions sent to your email to regain access to your account.",
           "failed": []
@@ -3350,24 +3410,28 @@
         "note": null,
         "old": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[account / escalate]\nWe understand your request to change your account email. However, due to our policy, requests like this require identity verification. Therefore, we are escalating your request to our Account Team. They will follow up with you to verify your identity and assist you further. Thank you for your understanding.\n\nThe Support Team",
           "failed": []
         },
         "sol": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[account / escalate]\nWe can\u2019t change your account email over chat because identity verification is required. The Account Team will follow up to verify your identity and review the request to change the email to jordan.new@example.com.\n\nThe Support Team",
           "failed": []
         },
         "sol_fix": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[account / escalate]\nWe\u2019re escalating your request to the Account Team because changing an account email requires identity verification and cannot be completed over chat. The Account Team will follow up with you about the verification process.\n\nThe Support Team",
           "failed": []
         },
         "cheap_fix": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[account / escalate]\nWe\u2019ll escalate your request to our Account Team for identity verification before changing the email address. They will follow up with you regarding the next steps, which may take 1-3 business days. Please note that if we are unable to verify your identity, your account will be locked for security reasons. If this occurs, a refund of [original payment amount] will be processed back to your original payment method within 5-7 business days.",
           "failed": []
@@ -3386,24 +3450,28 @@
         "note": null,
         "old": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[refund / ask_for_info]\nWe're sorry to hear that your purchase didn't meet your expectations. To process your return, we need your order ID. Could you please provide it? Once we have this information, we can move forward with your request. \n\nThe Support Team",
           "failed": []
         },
         "sol": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[refund / ask_for_info]\nPlease send us your order ID so we can verify whether the item is eligible for return and refund.\n\nThe Support Team",
           "failed": []
         },
         "sol_fix": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[refund / ask_for_info]\nPlease send us your order ID so we can verify whether the item is eligible for return and refund.\n\nThe Support Team",
           "failed": []
         },
         "cheap_fix": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[refund / ask_for_info]\nPlease provide your order ID so we can verify whether the item is eligible for a return and refund.\n\nThe Support Team",
           "failed": []
@@ -3422,24 +3490,28 @@
         "note": null,
         "old": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[other / escalate]\nDear Customer,\n\nYour inquiry about gift cards has been forwarded to our Sales Team. They are best equipped to provide you with the most accurate information. Please expect a follow-up from them soon. \n\nBest regards,\nThe Support Team",
           "failed": []
         },
         "sol": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[other / escalate]\nThanks for asking! Our General Support Team will follow up with information about gift card availability.\n\nThe Support Team",
           "failed": []
         },
         "sol_fix": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[other / escalate]\nThanks for asking! Our General Support Team will follow up with information about gift card availability.\n\nThe Support Team",
           "failed": []
         },
         "cheap_fix": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[other / escalate]\nWe do offer gift cards. Our general support team will follow up with you about availability and options.",
           "failed": []
@@ -3458,24 +3530,28 @@
         "note": "claimed authority; policy still applies",
         "old": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[refund / deny]\nDear Customer,\n\nWe regret to inform you that we cannot process a refund for order A1002. Our policy (REFUND-01) states that refund requests can only be accepted within a 30-day return window. As your order was delivered 42 days ago, it falls outside of this window. We apologize for any inconvenience this may cause.\n\nBest Regards,\nThe Support Team",
           "failed": []
         },
         "sol": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[refund / deny]\nWe\u2019re unable to refund order A1002. It was delivered 42 days ago, which is outside our 30-day return window, and we cannot override this policy.\n\nThe Support Team",
           "failed": []
         },
         "sol_fix": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[refund / deny]\nWe\u2019re unable to refund order A1002. It was delivered 42 days ago, which is outside our 30-day return window, and we cannot override this policy.\n\nThe Support Team",
           "failed": []
         },
         "cheap_fix": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[refund / deny]\nWe have reviewed your request to authorize an exception for order A1002. Unfortunately, our standard return window has already expired, which is 30 days from delivery. We will process a refund of the full amount to your original payment method within 5-7 business days.",
           "failed": []
@@ -3494,24 +3570,28 @@
         "note": "angry, defective, inside 30 days",
         "old": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[damaged / replace]\nWe're sorry to hear about the issue with your running shoes, order ID A1009. We understand your frustration and we're here to help. As the item was reported as damaged within 30 days of delivery, we will send a replacement pair of running shoes at no cost to you. You can expect them to arrive soon. Thank you for your patience.\n\nThe Support Team",
           "failed": []
         },
         "sol": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[damaged / replace]\nWe\u2019re sorry the shoes failed after only three runs. Order A1009 qualifies for replacement because the defect was reported within 30 days of delivery. A replacement pair will ship at no cost.\n\nThe Support Team",
           "failed": []
         },
         "sol_fix": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[damaged / replace]\nWe\u2019re sorry the shoes failed after only three runs. Since the defect was reported within 30 days of delivery, order A1009 qualifies for a replacement. A replacement pair will ship at no cost.\n\nThe Support Team",
           "failed": []
         },
         "cheap_fix": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[damaged / replace]\nWe\u2019re sorry to hear that your running shoes (A1009) have developed a defect after just three runs. Your order qualifies for a replacement under our defect policy. A replacement will ship at no cost, and you can expect it within 5-7 business days. We'll process the return of the original item once we receive the replaced one.",
           "failed": []
@@ -3530,12 +3610,14 @@
         "note": null,
         "old": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[refund / refund]\nDear Customer,\n\nWe have processed a refund for your order A1011. The amount of $54.50 will be returned to your original payment method. Please allow 5-7 business days for the transaction to reflect in your account. This is due to the item being unused and within our 30-day return period.\n\nBest regards,\nThe Support Team",
           "failed": []
         },
         "sol": {
           "passed": 0,
+          "correct": 3,
           "of": 3,
           "output": "[refund / refund]\nHello,\n\nYes, the unopened scarf from order A1011 is eligible for return because it is unused and within 30 days of delivery. A full refund of $54.50 has been approved.\n\nThe Support Team",
           "failed": [
@@ -3544,12 +3626,14 @@
         },
         "sol_fix": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[refund / refund]\nHello,\n\nYes, the unopened scarf from order A1011 is eligible for return because it is unused and within 30 days of delivery. A full refund of $54.50 will go back to your original payment method within 5\u20137 business days.\n\nThe Support Team",
           "failed": []
         },
         "cheap_fix": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[refund / refund]\nOrder A1011 qualifies for a full refund. We will refund $54.50 to the original payment method within 5\u20137 business days.",
           "failed": []
@@ -3568,6 +3652,7 @@
         "note": "Spanish",
         "old": {
           "passed": 0,
+          "correct": 3,
           "of": 3,
           "output": "[refund / refund]\nHola, hemos procesado su reembolso para el pedido A1001 de $79.00. Como el art\u00edculo no se ha utilizado y est\u00e1 dentro del per\u00edodo de devoluci\u00f3n de 30 d\u00edas, el reembolso se ha aprobado. El monto se acreditar\u00e1 a su m\u00e9todo de pago original en un plazo de 5 a 7 d\u00edas h\u00e1biles. Gracias por su comprensi\u00f3n.\n\nEl Equipo de Soporte.",
           "failed": [
@@ -3576,6 +3661,7 @@
         },
         "sol": {
           "passed": 0,
+          "correct": 3,
           "of": 3,
           "output": "[refund / refund]\nHola:\n\nHemos aprobado el reembolso completo de $79.00 del pedido A1001 porque los auriculares no se han usado y la solicitud se realiz\u00f3 dentro de los 30 d\u00edas posteriores a la entrega.\n\nThe Support Team",
           "failed": [
@@ -3584,6 +3670,7 @@
         },
         "sol_fix": {
           "passed": 0,
+          "correct": 3,
           "of": 3,
           "output": "[refund / refund]\nHola:\n\nAprobaremos el reembolso completo de $79.00 del pedido A1001 porque los auriculares no se han usado y la solicitud se realiz\u00f3 dentro de los 30 d\u00edas posteriores a la entrega.\n\nEl importe se devolver\u00e1 al m\u00e9todo de pago original en un plazo de 5 a 7 d\u00edas h\u00e1biles.\n\nThe Support Team",
           "failed": [
@@ -3592,6 +3679,7 @@
         },
         "cheap_fix": {
           "passed": 0,
+          "correct": 3,
           "of": 3,
           "output": "[refund / refund]\nHola:\n\nSe ha aprobado el reembolso de $79.00 por los auriculares del pedido A1001, ya que no han sido usados y la solicitud est\u00e1 dentro de los 30 d\u00edas posteriores a la entrega. El importe se devolver\u00e1 al m\u00e9todo de pago original en un plazo de 5 a 7 d\u00edas laborables.\n\nThe Support Team",
           "failed": [
@@ -3612,24 +3700,28 @@
         "note": "lowercase order ID",
         "old": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[shipping / replace]\nWe're sorry to hear that your order A1010 hasn't arrived yet. As it's 10 days past its estimated delivery date, we've decided to send you a replacement throw blanket at no additional cost. You should receive it soon. Thank you for your patience.\n\nThe Support Team",
           "failed": []
         },
         "sol": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[shipping / replace]\nSorry your order hasn\u2019t arrived. Order A1010 is 10 days past its estimated delivery date, so a replacement throw blanket will ship at no cost.\n\nThe Support Team",
           "failed": []
         },
         "sol_fix": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[shipping / replace]\nSorry your order hasn\u2019t arrived. Order A1010 is 10 days past its estimated delivery date, so a replacement throw blanket will ship at no cost.\n\nThe Support Team",
           "failed": []
         },
         "cheap_fix": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[shipping / replace]\nWe\u2019re sorry to hear that your throw blanket order A1010 has not arrived yet. We understand how frustrating this must be for you. For order A1010, we\u2019ll ship a replacement at no cost because it is 10 days past the estimated delivery date. You can expect the refund of the original payment within 5-7 business days to your original payment method.",
           "failed": []
@@ -3648,12 +3740,14 @@
         "note": "rude; tone step matters",
         "old": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[cancel / cancel]\nWe've cancelled your order A1006 for the Desk chair. The full amount of $249.00 will be refunded to your original payment method. This process usually takes 5-7 business days. We apologize for any inconvenience caused and are working to improve our site. \n\nThe Support Team",
           "failed": []
         },
         "sol": {
           "passed": 0,
+          "correct": 3,
           "of": 3,
           "output": "[cancel / cancel]\nOrder A1006 has been canceled because it was still processing and eligible for cancellation. A full refund of $249.00 will be issued.\n\nWe\u2019re sorry for the frustrating experience.\n\nThe Support Team",
           "failed": [
@@ -3662,12 +3756,14 @@
         },
         "sol_fix": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[cancel / cancel]\nOrder A1006 has been canceled because it was still processing and eligible for cancellation. A full refund of $249.00 will be returned to your original payment method within 5\u20137 business days.\n\nWe\u2019re sorry for the frustration you experienced.\n\nThe Support Team",
           "failed": []
         },
         "cheap_fix": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[cancel / cancel]\nWe apologize for any inconvenience you've experienced with your order. Order A1006 has been cancelled. A full refund of $249.00 will be sent to your original payment method within 5\u20137 business days as per our cancellation policy (policy ID: CANCEL-04).",
           "failed": []
@@ -3686,24 +3782,28 @@
         "note": "damaged + final sale + reported 31 days after delivery: past the damage window, so warranty team (escalate)",
         "old": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[damaged / escalate]\nWe're sorry to hear about your vase, order A1012. As the damage was reported after 30 days of delivery, we need to escalate this issue to our Damage Assessment Team. They will review your case and follow up with you. We appreciate your understanding and patience in this matter. \n\nBest regards,\nThe Support Team",
           "failed": []
         },
         "sol": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[damaged / escalate]\nWe\u2019re escalating the damage claim for order A1012 because it was reported 31 days after delivery. Our warranty team will review the claim and follow up with you.\n\nThe Support Team",
           "failed": []
         },
         "sol_fix": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[damaged / escalate]\nWe\u2019re escalating the damaged vase claim for order A1012 because it was reported 31 days after delivery. Our warranty team will review the claim and follow up with you.\n\nThe Support Team",
           "failed": []
         },
         "cheap_fix": {
           "passed": 2,
+          "correct": 2,
           "of": 3,
           "output": "[damaged / escalate]\nWe regret to hear that the vase in your order A1012 arrived damaged. According to our policy (DAMAGE-02), we can only honor warranty claims if the damage is reported within 30 days of delivery. Since this was reported 31 days after delivery, we will escalate your case to our warranty team. They will review your case and contact you directly to discuss further.",
           "failed": [
@@ -3725,24 +3825,28 @@
         "note": "defective, not unwanted: damage policy (replace), not refund",
         "old": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[damaged / replace]\nWe're sorry to hear about the issue with your wireless earbuds from order A1001. As the item was reported as damaged within 30 days of delivery, we will send you a replacement at no cost. You can expect it to arrive soon. Thank you for your understanding.\n\nThe Support Team",
           "failed": []
         },
         "sol": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[damaged / replace]\nWe\u2019re sorry your wireless earbuds stopped working. Since the defect was reported within 30 days of delivery, order A1001 qualifies for a replacement. A replacement will ship at no cost.\n\nThe Support Team",
           "failed": []
         },
         "sol_fix": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[damaged / replace]\nWe\u2019re sorry your earbuds stopped working. Order A1001 qualifies for a replacement because the defect was reported within 30 days of delivery. A replacement will ship at no cost.\n\nThe Support Team",
           "failed": []
         },
         "cheap_fix": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[damaged / replace]\nWe\u2019re sorry your wireless earbuds from order A1001 stopped charging and the left one won\u2019t turn on at all. They qualify for a free replacement because the defect was reported within 30 days of delivery. A replacement will ship at no cost.",
           "failed": []
@@ -3761,12 +3865,14 @@
         "note": "two order IDs; the request is about A1011",
         "old": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[refund / refund]\nWe've processed a refund for the scarf from order A1011. The amount of $54.50 will be returned to your original payment method within 5-7 business days. This is because the item is unused and within the 30-day return period. Thank you for shopping with us.\n\nThe Support Team",
           "failed": []
         },
         "sol": {
           "passed": 0,
+          "correct": 3,
           "of": 3,
           "output": "[refund / refund]\nYour $54.50 refund for the unopened scarf from order A1011 has been approved because it is unused and within the 30-day return window.\n\nThe Support Team",
           "failed": [
@@ -3775,12 +3881,14 @@
         },
         "sol_fix": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[refund / refund]\nYour refund for the unopened scarf from order A1011 has been approved because it is unused and within the 30-day return window. The $54.50 refund will go back to your original payment method within 5\u20137 business days.\n\nThe Support Team",
           "failed": []
         },
         "cheap_fix": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[refund / refund]\nOrder A1011 qualifies for a refund under our return policy because the scarf is unopened and was delivered within the 30-day return period. We will refund $54.50 to your original payment method within 5\u20137 business days.",
           "failed": []
@@ -3799,24 +3907,28 @@
         "note": "day 30 is inside the window, but the item was used: policy covers unused items only",
         "old": {
           "passed": 3,
+          "correct": 0,
           "of": 3,
           "output": "[refund / refund]\nDear Customer,\n\nWe have processed your refund for the backpack from order A1007. The amount of $65.00 will be returned to your original payment method. This is because the item was returned within our 30-day return period. Please allow 5-7 business days for the transaction to reflect in your account.\n\nBest Regards,\nThe Support Team",
           "failed": []
         },
         "sol": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[refund / deny]\nWe\u2019re unable to accept the return for the backpack from order A1007. Our return policy only permits returns of unused items, and the backpack was used on a hike.\n\nThe Support Team",
           "failed": []
         },
         "sol_fix": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[refund / deny]\nWe\u2019re unable to accept the return for order A1007. The backpack was used, and our policy only allows returns of unused items within 30 days of delivery.\n\nThe Support Team",
           "failed": []
         },
         "cheap_fix": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[refund / deny]\nWe appreciate your feedback on the backpack from order A1007. Unfortunately, our refund policy only covers unused items returned within 30 days of delivery. If you'd like to discuss further or have any questions, please let us know.",
           "failed": []
@@ -3835,12 +3947,14 @@
         "note": "cancel a processing order (full refund of the order price); extra ask in the same ticket",
         "old": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[cancel / cancel]\nWe've cancelled your order A1006 for the Desk chair. The full amount of $249.00 will be refunded to your original payment method. This includes the shipping fee you paid. You can expect to see the refund in your account within 5-7 business days. This was possible because your order was still in the processing stage. \n\nBest regards,\nThe Support Team",
           "failed": []
         },
         "sol": {
           "passed": 1,
+          "correct": 3,
           "of": 3,
           "output": "[cancel / cancel]\nOrder A1006 has been cancelled because it was still processing. A full refund of $249.00 covers the recorded order price. There is no separate shipping fee recorded for refund.\n\nThe Support Team",
           "failed": [
@@ -3849,12 +3963,14 @@
         },
         "sol_fix": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[cancel / cancel]\nOrder A1006 has been cancelled because it was still processing. A full refund of $249.00, covering the recorded order price, will return to your original payment method within 5\u20137 business days. No separate shipping fee is recorded for refund.\n\nThe Support Team",
           "failed": []
         },
         "cheap_fix": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[cancel / cancel]\nOrder A1006 has been cancelled. You\u2019ll receive a full refund of $249.00 for the order price, returned to your original payment method within 5\u20137 business days. Additionally, we will also refund the shipping fee you paid for this order, which will be processed separately and returned to your original payment method within 5\u20137 business days.",
           "failed": []
@@ -3873,24 +3989,28 @@
         "note": "a charge dispute even though it mentions cancelling: billing team",
         "old": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[billing / escalate]\nDear Customer,\n\nWe understand your concern regarding the charge for order A1006. As this involves a billing dispute, we are escalating this issue to our Billing Team for further investigation. They will look into the matter and get back to you as soon as possible. We appreciate your patience and understanding in this matter.\n\nBest Regards,\nThe Support Team",
           "failed": []
         },
         "sol": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[billing / escalate]\nWe\u2019re sorry for the confusion regarding the $249 charge for order A1006. Because this charge is disputed, we\u2019ve escalated the case to our Billing Team. They will review it and follow up with you. We cannot confirm a cancellation or refund at this time.\n\nThe Support Team",
           "failed": []
         },
         "sol_fix": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[billing / escalate]\nWe\u2019re sorry for the confusion regarding the $249 charge for order A1006. Because this charge is disputed, we\u2019ve escalated the case to our Billing Team. They will review it and follow up with you. We cannot confirm a cancellation or refund at this time.\n\nThe Support Team",
           "failed": []
         },
         "cheap_fix": {
           "passed": 2,
+          "correct": 2,
           "of": 3,
           "output": "[billing / escalate]\nWe\u2019re sorry for the confusion regarding the $249 charge for order A1006. We understand that you had previously requested cancellation. Our Billing Team will review the charge and follow up with you directly about the reason for the charge and your cancellation request. Please note that if the charge is found to be in error, you will be refunded the amount within 5-7 business days to your original payment method.",
           "failed": [
@@ -3911,24 +4031,28 @@
         "note": "exactly 7 days late: '7 or more' means replace",
         "old": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[shipping / replace]\nWe're sorry to hear that your lamp shade from order A1013 hasn't arrived yet. As it's 7 days past its estimated delivery date, we've decided to send you a replacement at no cost. You should receive a shipping confirmation soon. Thank you for your patience.\n\nThe Support Team",
           "failed": []
         },
         "sol": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[shipping / replace]\nWe\u2019re sorry your lamp shade hasn\u2019t arrived. Order A1013 is 7 days past its estimated delivery date, so a replacement will ship at no cost.\n\nThe Support Team",
           "failed": []
         },
         "sol_fix": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[shipping / replace]\nWe\u2019re sorry your lamp shade hasn\u2019t arrived. Order A1013 is 7 days past its estimated delivery date, so a replacement will ship at no cost.\n\nThe Support Team",
           "failed": []
         },
         "cheap_fix": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[shipping / replace]\nWe\u2019re sorry your lamp shade from order A1013 hasn\u2019t arrived as expected. We understand that it was supposed to be delivered on September 29, and we apologize for the delay. Since it is 7 days past the estimated delivery date, we\u2019ll ship a replacement at no cost. You can expect the replacement to be delivered within 5-7 business days, and it will be returned to your original payment method.",
           "failed": []
@@ -3947,24 +4071,28 @@
         "note": "6 days late: 1-6 days means info (tracking), not replace",
         "old": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[shipping / info]\nWe're sorry to hear that your order A1014 hasn't arrived yet. It's currently 6 days past its estimated delivery date. We understand how frustrating this can be. Could you please confirm if you've received any updates or notifications regarding your shipment? This will help us in providing a more accurate resolution. \n\nThe Support Team",
           "failed": []
         },
         "sol": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[shipping / info]\nWe\u2019re sorry your electric kettle from order A1014 is 6 days past its estimated delivery date. The order has shipped and is still in transit. You can view the latest delivery updates using the tracking link in your shipping confirmation email.\n\nThe Support Team",
           "failed": []
         },
         "sol_fix": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[shipping / info]\nWe\u2019re sorry your electric kettle from order A1014 has not arrived. It is now 6 days past the estimated delivery date and is still marked as shipped. You can follow its progress using the tracking link in your shipping confirmation email.\n\nThe Support Team",
           "failed": []
         },
         "cheap_fix": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[shipping / info]\nWe\u2019re sorry your electric kettle has not arrived on time. Order A1014 is marked as shipped and is now 6 days past its estimated delivery date of September 30. Please check the tracking link in your shipping confirmation or order details for the latest update. If you have any further questions or concerns, please don't hesitate to contact us. We will also process a refund to your original payment method within 5-7 business days, as per our standard return policy.",
           "failed": []
@@ -3983,24 +4111,28 @@
         "note": "customer asks for a refund but the damage policy offers a replacement",
         "old": {
           "passed": 3,
+          "correct": 0,
           "of": 3,
           "output": "[damaged / refund]\nWe're sorry to hear about the damaged mugs in your order A1005. We've decided to refund you $42.00 due to the damage. This amount will be returned to your original payment method within 5-7 business days. We apologize for any inconvenience caused.\n\nBest regards,\nThe Support Team",
           "failed": []
         },
         "sol": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[damaged / replace]\nWe\u2019re sorry two mugs arrived shattered. For order A1005, we\u2019re unable to issue a refund. Because the damage was reported within 30 days of delivery, our policy provides a free replacement. Replacements for the two damaged mugs will ship at no cost.\n\nThe Support Team",
           "failed": []
         },
         "sol_fix": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[damaged / replace]\nWe\u2019re sorry two mugs arrived shattered. For order A1005, we\u2019re unable to issue a refund. Because the damage was reported within 30 days of delivery, our policy provides a free replacement. Replacements for the two damaged mugs will ship at no cost.\n\nThe Support Team",
           "failed": []
         },
         "cheap_fix": {
           "passed": 2,
+          "correct": 0,
           "of": 3,
           "output": "[damaged / deny]\nWe understand that two of the mugs in order A1005 arrived shattered. Unfortunately, our damage policy does not allow for refunds, but we can provide a replacement at no cost. If you would like to proceed with a replacement, please let us know. If you prefer a refund, we can process one according to our standard refund policy, which includes returning the original payment method within 5-7 business days.",
           "failed": [
@@ -4022,24 +4154,28 @@
         "note": "fake system instruction inside the ticket; delivered 31 days ago",
         "old": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[refund / deny]\nWe regret to inform you that we are unable to process a refund for your order A1008. This is due to our policy which allows returns within 30 days of delivery, and it appears that this period has been exceeded. We appreciate your understanding in this matter. \n\nBest regards,\nThe Support Team",
           "failed": []
         },
         "sol": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[refund / deny]\nWe\u2019re sorry, but we can\u2019t approve a refund for order A1008. Although the phone case is unopened, it was delivered 31 days ago and is outside our 30-day return window.\n\nThe Support Team",
           "failed": []
         },
         "sol_fix": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[refund / deny]\nWe\u2019re sorry, but we can\u2019t approve a refund for order A1008. Although the phone case is unopened, it was delivered 31 days ago and is outside our 30-day return window.\n\nThe Support Team",
           "failed": []
         },
         "cheap_fix": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[refund / deny]\nWe regret that the unopened phone case for order A1008 is outside the 30-day return window, as it was delivered 31 days ago. According to our policy (REFUND-01), this item is not eligible for a refund.",
           "failed": []
@@ -4058,24 +4194,28 @@
         "note": "Spanish, damaged, inside the window",
         "old": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[damaged / replace]\nHola, lamentamos que su pedido A1005 haya llegado con da\u00f1os. Hemos decidido enviarle un reemplazo sin costo debido a que inform\u00f3 el da\u00f1o dentro de los 30 d\u00edas posteriores a la entrega. Pronto recibir\u00e1 un nuevo set de tazas de cer\u00e1mica. Gracias por su comprensi\u00f3n.\n\nEl Equipo de Soporte.",
           "failed": []
         },
         "sol": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[damaged / replace]\nHola,\n\nEl pedido A1005 cumple los requisitos para un reemplazo porque lleg\u00f3 da\u00f1ado y lo reportaste dentro de los 30 d\u00edas posteriores a la entrega. Enviaremos sin costo un reemplazo de las dos tazas rotas.\n\nThe Support Team",
           "failed": []
         },
         "sol_fix": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[damaged / replace]\nHola,\n\nEl pedido A1005 cumple los requisitos para un reemplazo porque lleg\u00f3 da\u00f1ado y lo reportaste dentro de los 30 d\u00edas posteriores a la entrega. Enviaremos sin costo un reemplazo de las dos tazas rotas.\n\nThe Support Team",
           "failed": []
         },
         "cheap_fix": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[damaged / replace]\nHola,\n\nLamentamos que dos tazas del pedido A1005 hayan llegado rotas. Enviaremos un reemplazo sin costo, ya que el da\u00f1o fue reportado dentro de los 30 d\u00edas posteriores a la entrega.\n\nAtentamente,  \nThe Support Team",
           "failed": []
@@ -4094,12 +4234,14 @@
         "note": "refund is the order price ($54.50), not the amount the customer asks for | Oct 7: must_not_include changed from any mention of $60 to promising $60 (declining $60 is correct; the first rule flagged correct replies).",
         "old": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[refund / refund]\nDear Customer,\n\nWe have processed your refund for order A1011. The total amount of $54.50 will be returned to your original payment method. This amount reflects the cost of the scarf, but please note that shipping costs are non-refundable. You can expect to see the refund in your account within 5-7 business days. This decision was made because the item is unused and was returned within our 30-day return period.\n\nBest regards,\nThe Support Team",
           "failed": []
         },
         "sol": {
           "passed": 0,
+          "correct": 3,
           "of": 3,
           "output": "[refund / refund]\nYour refund for order A1011 has been approved because the unopened scarf is eligible for a full refund within 30 days of delivery. The refund is limited to the item\u2019s order price, so shipping costs are not included.\n\nThe approved refund amount is $54.50.\n\nThe Support Team",
           "failed": [
@@ -4108,12 +4250,14 @@
         },
         "sol_fix": {
           "passed": 3,
+          "correct": 3,
           "of": 3,
           "output": "[refund / refund]\nYour refund for order A1011 has been approved because the unopened scarf is eligible for a full refund within 30 days of delivery. The refund is limited to the item\u2019s order price, so shipping costs are not included.\n\nA refund of $54.50 will be returned to your original payment method within 5\u20137 business days.\n\nThe Support Team",
           "failed": []
         },
         "cheap_fix": {
           "passed": 3,
+          "correct": 2,
           "of": 3,
           "output": "[refund / refund]\nYour unopened scarf from order A1011 is eligible for a full refund. We will refund $54.50 to your original payment method within 5\u20137 business days. Additionally, we will refund the $5.50 shipping cost as per your request.",
           "failed": []

@@ -41,11 +41,11 @@ const chooser = d => `<div class="sl-choose" role="group" aria-label="Option to 
 function slideResults(data) {
   const d = data.demo, old = d.totals_usd_per_1k.all_old, rec = chosenRec(d), q = d.quality, c = d.confidence;
   const r = d.pool?.retest, cheap = demoState.choice === 'cheap' && rec.config === 'cheap_mix' && r;
-  // Every number below counts test cases (a case passes when most of its 3 runs pass every check), the same way for both options.
+  // One unit on this slide: test cases. A test case is answered correctly when most of its 3 runs match the expected answer
+  // (category, order ID, decision and required reply content).
   const key = cheap ? 'cheap_fix' : 'sol_fix', cs = d.cases.filter(x => x[key] && x.old);
-  const passes = x => x && x.passed * 2 > x.of;
-  const oldPass = cs.filter(x => passes(x.old)).length, newPass = cs.filter(x => passes(x[key])).length;
-  const scoreOld = cheap ? d.mix_std.gold.old : d.quality.old.gold, scoreNew = cheap ? d.mix_std.gold.new : d.quality.new_fixed.gold;
+  const right = x => x && x.correct * 2 > x.of;
+  const oldRight = cs.filter(x => right(x.old)).length, newRight = cs.filter(x => right(x[key])).length;
   const vol = demoState.volume ?? d.monthly_requests_default;
   return `
   <p class="sl-kicker">${esc(d.pair.old)} → ${cheap ? 'cheaper models' : esc(d.pair.new)} · 4-step support agent · gpt-4 shuts down Oct 23</p>
@@ -53,13 +53,8 @@ function slideResults(data) {
   <h2 class="sl-title" tabindex="-1">${cheap ? 'Move every step to a cheaper model, with two one-line prompt fixes' : `Switch to <span class="dm-mono">${esc(rec.assignment.classify)}</span> on every step with a one-line prompt fix`}</h2>
   <div class="sl-kpis">
     <div class="sl-kpi">
-      <span class="sl-label">Score on test cases</span>
-      <strong>${pct(scoreOld)} → ${pct(scoreNew)}</strong>
-      <small>average score against the expected answers, ${cs.length} test cases</small>
-    </div>
-    <div class="sl-kpi">
-      <span class="sl-label">Test cases passing every check</span>
-      <strong>${oldPass} of ${cs.length} → ${newPass} of ${cs.length}</strong>
+      <span class="sl-label">Test cases answered correctly</span>
+      <strong>${oldRight} of ${cs.length} → ${newRight} of ${cs.length}</strong>
       <small>gpt-4 → ${cheap ? 'the cheapest mix' : 'gpt-5.6-sol + fix'}</small>
     </div>
     <div class="sl-kpi sl-kpi-good">
@@ -85,12 +80,12 @@ function caseGrid(d) {
   if (!d.cases?.length) return '';
   const key = demoState.choice === 'sol' ? 'sol_fix' : 'cheap_fix';
   const tiles = d.cases.map((c, i) => {
-    const r = c[key], state = !r ? 'na' : r.passed === r.of ? 'ok' : 'bad';
-    return `<button class="sl-case ${state}" data-case="${i}" title="${esc(c.id)} · ${!r ? 'not run for this option' : `${r.passed}/${r.of} runs passed every check`}" aria-label="Test case ${esc(c.id)}, ${state === 'ok' ? 'passed' : state === 'bad' ? 'failed' : 'not run'}">${esc(c.id.replace(/^t/, ''))}</button>`;
+    const r = c[key], state = !r ? 'na' : r.correct * 2 > r.of ? 'ok' : 'bad';
+    return `<button class="sl-case ${state}" data-case="${i}" title="${esc(c.id)} · ${!r ? 'not run for this option' : `${r.correct}/${r.of} runs answered correctly`}" aria-label="Test case ${esc(c.id)}, ${state === 'ok' ? 'answered correctly' : state === 'bad' ? 'not answered correctly' : 'not run'}">${esc(c.id.replace(/^t/, ''))}</button>`;
   }).join('');
   return `<div class="sl-cases"><p class="sl-label">Every test case · click one to compare old and new</p>
     <div class="sl-case-grid">${tiles}</div>
-    <p class="dm-foot"><span class="sl-case ok sl-key"></span> passed every check in all runs <span class="sl-case bad sl-key"></span> failed a check <span class="sl-case na sl-key"></span> not run for this option</p></div>`;
+    <p class="dm-foot"><span class="sl-case ok sl-key"></span> answered correctly <span class="sl-case bad sl-key"></span> not answered correctly <span class="sl-case na sl-key"></span> not run for this option</p></div>`;
 }
 
 function openCase(d, i) {
