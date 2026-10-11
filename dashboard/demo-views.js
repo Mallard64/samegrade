@@ -357,7 +357,7 @@ function slideChoice(data) {
   const all = d.confidence.dev_tickets, broken = d.per_step[0]?.repair?.of ?? 0;   // the swap experiments ran on the practice set
   const bar = (left, of) => `<span class="sl-swap-bar" aria-hidden="true"><i style="width:${of ? left / of * 100 : 0}%"></i></span>`;
   const row = (label, x, cls) => { const left = x.of - x.n; return `<li class="${left === 0 ? 'hit' : ''}">${label}${bar(left, all)}<span class="sl-swap-n">${left} of ${all} still broken</span></li>`; };
-  const proof = `<div class="sl-ladder-box sl-proof"><p class="sl-label">gpt-5.6-sol on every step broke ${broken} of ${all} practice test cases. Put gpt-4 back on one step at a time:</p>
+  const proof = `<div class="sl-ladder-box sl-proof"><p class="sl-label">How upshift finds what broke, shown on <span class="dm-mono">gpt-5.6-sol</span>: on every step it broke ${broken} of ${all} practice test cases. Put gpt-4 back on one step at a time:</p>
     <ol class="sl-swap">${d.per_step.map(x => row(`<span class="dm-mono sl-step">${esc(x.step)}</span>`, {n: x.repair.n, of: x.repair.of})).join('')}</ol>
     ${d.lines?.results?.length ? `<p class="sl-label">Then, in the <span class="dm-mono">${esc(d.lines.step)}</span> prompt, remove one line at a time:</p>
     <ol class="sl-swap">${d.lines.results.map(x => row(`<span class="sl-swap-line" title="${esc(x.line)}">${x.line_index + 1}. ${esc(x.line.length > 60 ? x.line.slice(0, 57) + '…' : x.line)}</span>`, {n: x.repairs, of: x.of})).join('')}</ol>` : ''}</div>`;
