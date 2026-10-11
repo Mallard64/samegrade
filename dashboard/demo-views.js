@@ -45,8 +45,7 @@ function slideResults(data) {
   const key = cheap ? 'cheap_fix' : 'sol_fix', cs = d.cases.filter(x => x[key] && x.old);
   const passes = x => x && x.passed * 2 > x.of;
   const oldPass = cs.filter(x => passes(x.old)).length, newPass = cs.filter(x => passes(x[key])).length;
-  const vc = data.candidates[0].summary.verdict_counts, vf = data.candidates[0].summary.verdict_counts_after_fix || {};
-  const better = cheap ? d.mix_std.improved.length : vf.IMPROVED ?? 0, worseNow = cheap ? d.mix_std.regressed.length : vf.REGRESSED ?? 0;
+  const scoreOld = cheap ? d.mix_std.gold.old : d.quality.old.gold, scoreNew = cheap ? d.mix_std.gold.new : d.quality.new_fixed.gold;
   const vol = demoState.volume ?? d.monthly_requests_default;
   return `
   <p class="sl-kicker">${esc(d.pair.old)} → ${cheap ? 'cheaper models' : esc(d.pair.new)} · 4-step support agent · gpt-4 shuts down Oct 23</p>
@@ -54,9 +53,9 @@ function slideResults(data) {
   <h2 class="sl-title" tabindex="-1">${cheap ? 'Move every step to a cheaper model, with two one-line prompt fixes' : `Switch to <span class="dm-mono">${esc(rec.assignment.classify)}</span> on every step with a one-line prompt fix`}</h2>
   <div class="sl-kpis">
     <div class="sl-kpi">
-      <span class="sl-label">Compared with gpt-4</span>
-      <strong>${better} better · ${worseNow} worse</strong>
-      <small>${cs.length} test cases. Better = right where gpt-4 was wrong.${cheap ? '' : ` Without the fix: ${vc.REGRESSED} worse.`}</small>
+      <span class="sl-label">Score on test cases</span>
+      <strong>${pct(scoreOld)} → ${pct(scoreNew)}</strong>
+      <small>average score against the expected answers, ${cs.length} test cases</small>
     </div>
     <div class="sl-kpi">
       <span class="sl-label">Test cases passing every check</span>
