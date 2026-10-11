@@ -54,12 +54,12 @@ function slideResults(data) {
     <div class="sl-kpi">
       <span class="sl-label">${cheap ? 'Compared with gpt-4' : 'Test cases that got worse'}</span>
       <strong>${cheap ? `${m36.improved.length} better · ${m36.regressed.length} worse` : `${before} → ${after}`}</strong>
-      <small>${cheap ? `after the fixes, across ${m36.of} test cases` : `before → after the fix, across ${c.dev_tickets + c.heldout_tickets} test cases`}</small>
+      <small>${cheap ? `by test case, majority of 3 runs. Better = right where gpt-4 was wrong. ${m36.of} test cases` : `before → after the fix, across ${c.dev_tickets + c.heldout_tickets} test cases`}</small>
     </div>
     <div class="sl-kpi">
-      <span class="sl-label">Accuracy</span>
+      <span class="sl-label">Individual runs passing every check</span>
       <strong>${pct(passedOld)} → ${pct(passedNew)}</strong>
-      <small>replies passing every check</small>
+      <small>${Math.round(passedOld * (cheap ? m36.of : c.dev_tickets + c.heldout_tickets) * 3)} → ${Math.round(passedNew * (cheap ? m36.of : c.dev_tickets + c.heldout_tickets) * 3)} of ${(cheap ? m36.of : c.dev_tickets + c.heldout_tickets) * 3} runs (3 per test case)</small>
     </div>
     <div class="sl-kpi sl-kpi-good">
       <span class="sl-label">Model cost per 1,000 test cases</span>
