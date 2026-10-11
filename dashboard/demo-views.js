@@ -41,10 +41,12 @@ const chooser = d => `<div class="sl-choose" role="group" aria-label="Option to 
 function slideResults(data) {
   const d = data.demo, old = d.totals_usd_per_1k.all_old, rec = chosenRec(d), q = d.quality, c = d.confidence;
   const r = d.pool?.retest, cheap = demoState.choice === 'cheap' && rec.config === 'cheap_mix' && r;
-  const m36 = d.mix_std;   // the cheap mix on the standard 36 test cases, against gpt-4
-  const before = c.regressed_dev + c.regressed_heldout_before;
-  const after = data.candidates[0].summary.verdict_counts_after_fix?.REGRESSED;
-  const passedOld = cheap ? m36.passed_all.old : q.old.passed_all, passedNew = cheap ? m36.passed_all.new : q.new_fixed.passed_all;
+  // Every number below counts test cases (a case passes when most of its 3 runs pass every check), the same way for both options.
+  const key = cheap ? 'cheap_fix' : 'sol_fix', cs = d.cases.filter(x => x[key] && x.old);
+  const passes = x => x && x.passed * 2 > x.of;
+  const oldPass = cs.filter(x => passes(x.old)).length, newPass = cs.filter(x => passes(x[key])).length;
+  const vc = data.candidates[0].summary.verdict_counts, vf = data.candidates[0].summary.verdict_counts_after_fix || {};
+  const better = cheap ? d.mix_std.improved.length : vf.IMPROVED ?? 0, worseNow = cheap ? d.mix_std.regressed.length : vf.REGRESSED ?? 0;
   const vol = demoState.volume ?? d.monthly_requests_default;
   return `
   <p class="sl-kicker">${esc(d.pair.old)} → ${cheap ? 'cheaper models' : esc(d.pair.new)} · 4-step support agent · gpt-4 shuts down Oct 23</p>
@@ -52,14 +54,14 @@ function slideResults(data) {
   <h2 class="sl-title" tabindex="-1">${cheap ? 'Move every step to a cheaper model, with two one-line prompt fixes' : `Switch to <span class="dm-mono">${esc(rec.assignment.classify)}</span> on every step with a one-line prompt fix`}</h2>
   <div class="sl-kpis">
     <div class="sl-kpi">
-      <span class="sl-label">${cheap ? 'Compared with gpt-4' : 'Test cases that got worse'}</span>
-      <strong>${cheap ? `${m36.improved.length} better · ${m36.regressed.length} worse` : `${before} → ${after}`}</strong>
-      <small>${cheap ? `by test case, majority of 3 runs. Better = right where gpt-4 was wrong. ${m36.of} test cases` : `before → after the fix, across ${c.dev_tickets + c.heldout_tickets} test cases`}</small>
+      <span class="sl-label">Compared with gpt-4</span>
+      <strong>${better} better · ${worseNow} worse</strong>
+      <small>${cs.length} test cases. Better = right where gpt-4 was wrong.${cheap ? '' : ` Without the fix: ${vc.REGRESSED} worse.`}</small>
     </div>
     <div class="sl-kpi">
-      <span class="sl-label">Individual runs passing every check</span>
-      <strong>${pct(passedOld)} → ${pct(passedNew)}</strong>
-      <small>${Math.round(passedOld * (cheap ? m36.of : c.dev_tickets + c.heldout_tickets) * 3)} → ${Math.round(passedNew * (cheap ? m36.of : c.dev_tickets + c.heldout_tickets) * 3)} of ${(cheap ? m36.of : c.dev_tickets + c.heldout_tickets) * 3} runs (3 per test case)</small>
+      <span class="sl-label">Test cases passing every check</span>
+      <strong>${oldPass} of ${cs.length} → ${newPass} of ${cs.length}</strong>
+      <small>gpt-4 → ${cheap ? 'the cheapest mix' : 'gpt-5.6-sol + fix'}</small>
     </div>
     <div class="sl-kpi sl-kpi-good">
       <span class="sl-label">Model cost per 1,000 test cases</span>
@@ -357,6 +359,13 @@ function slideChoice(data) {
   const ladder = !p ? '' : `<ol class="sl-ladder">${STEPS.map(s => `<li><span class="dm-mono sl-step">${s}</span>${(p.ladder[s] || []).map(t =>
     `<span class="sl-chip ${t.passed ? 'ok' : 'no'}">${esc(t.model)} ${t.passed ? '✓' : `✗ ${t.regressed}`}</span>`).join('')}</li>`).join('')}</ol>`;
   const fbResults = `${data.candidates[0].summary.verdict_counts_after_fix?.REGRESSED} of ${d.confidence.dev_tickets + d.confidence.heldout_tickets}`;
+  // The step-finder's proof: with gpt-5.6-sol everywhere, put gpt-4 back on one step (then one prompt line) at a time.
+  const broken = d.per_step[0]?.repair?.of ?? 0;
+  const bar = (n, of) => `<span class="sl-swap-bar" aria-hidden="true"><i style="width:${of ? n / of * 100 : 0}%"></i></span>`;
+  const proof = `<div class="sl-ladder-box sl-proof"><p class="sl-label">Which step broke? gpt-5.6-sol on every step broke ${broken} practice test cases. Put gpt-4 back on one step at a time:</p>
+    <ol class="sl-swap">${d.per_step.map(x => `<li class="${x.guilty ? 'hit' : ''}"><span class="dm-mono sl-step">${esc(x.step)}</span>${bar(x.repair.n, x.repair.of)}<span class="sl-swap-n">${x.repair.n} of ${x.repair.of} fixed</span></li>`).join('')}</ol>
+    ${d.lines?.results?.length ? `<p class="sl-label">Which line? In the <span class="dm-mono">${esc(d.lines.step)}</span> prompt, remove one line at a time:</p>
+    <ol class="sl-swap">${d.lines.results.map(x => `<li class="${x.repairs ? 'hit' : ''}"><span class="sl-swap-line" title="${esc(x.line)}">${x.line_index + 1}. ${esc(x.line.length > 60 ? x.line.slice(0, 57) + '…' : x.line)}</span>${bar(x.repairs, x.of)}<span class="sl-swap-n">${x.repairs} of ${x.of} fixed</span></li>`).join('')}</ol>` : ''}</div>`;
   const main = !r ? '' : `
     <section class="sl-option${demoState.choice === 'cheap' ? ' sl-option-rec' : ''}" aria-labelledby="sl-a">
       <span class="dm-pill accepted">Recommended · cheapest</span>
@@ -383,6 +392,7 @@ function slideChoice(data) {
   return `
   <p class="sl-kicker">Cheapest safe choice</p>
   <h2 class="sl-title" tabindex="-1">Pick the cheapest model that passes each step, then fix what breaks</h2>
+  ${proof}
   ${p ? `<div class="sl-ladder-box"><p class="sl-label">Each step, cheapest first (✗ n = test cases that got worse)</p>${ladder}</div>` : ''}
   <div class="sl-options">
     ${main}
