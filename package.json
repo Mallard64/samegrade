@@ -1,0 +1,21 @@
+{
+  "name": "samegrade",
+  "version": "1.0.0",
+  "description": "This kit records how [explosion/spacy-llm](https://github.com/explosion/spacy-llm) behaves on the models it uses today, before they shut down on **Oct 23, 2026**. Those models are `gpt-4` (→ `gpt-4-0613`) and `gpt-3.5-turbo` (→ `gpt-3.5-turbo-0125`). After that date, these outputs can't be regenerated.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Mallard64/samegrade.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Mallard64/samegrade/issues"
+  },
+  "homepage": "https://github.com/Mallard64/samegrade#readme"
+}
